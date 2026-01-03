@@ -20,6 +20,7 @@ body {
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    background-color: #1a1a1a;
 }
 
 .bg-video {
@@ -35,6 +36,22 @@ body {
     /* Prevent video from stretching on mobile */
     min-width: 100%;
     min-height: 100%;
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+}
+
+.bg-video-placeholder {
+    opacity: 1;
+    z-index: 0;
+}
+
+.bg-video-main {
+    opacity: 0;
+    z-index: 1;
+}
+
+.bg-video-main.loaded {
+    opacity: 1;
 }
 
 .bg-gray-overlay {
@@ -43,7 +60,7 @@ body {
     background-color: rgb(31, 31, 31);
     opacity: 0.15;
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
 }
 
 .bg-grain-overlay {
@@ -57,12 +74,12 @@ body {
     background-blend-mode: overlay;
     mix-blend-mode: overlay;
     pointer-events: none;
-    z-index: 2;
+    z-index: 3;
 }
 
 .content {
     position: relative;
-    z-index: 3;
+    z-index: 4;
     min-height: 100vh;
     min-height: -webkit-fill-available;
     display: flex;
@@ -110,7 +127,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 3;
+    z-index: 4;
     display: flex;
     align-items: flex-end;
     justify-content: center;
