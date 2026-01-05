@@ -80,6 +80,9 @@ body {
 .content {
     position: relative;
     z-index: 4;
+    /* Use a definite viewport height so flex centering is reliable on desktop */
+    height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
     min-height: -webkit-fill-available;
     display: flex;
