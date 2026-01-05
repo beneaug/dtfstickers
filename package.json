@@ -1,0 +1,18 @@
+{
+  "name": "12ozstickers",
+  "version": "1.0.0",
+  "description": "Custom sticker ordering platform",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step needed'",
+    "deploy": "vercel"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.0",
+    "stripe": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

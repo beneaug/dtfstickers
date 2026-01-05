@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Order Custom Stickers | 12oz Stickers</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="order.css">
+</head>
+<body class="order-page">
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="bg-grain-overlay"></div>
+
+    <main class="order-container">
+        <header class="order-header">
+            <a href="/" class="order-back-link">← Back</a>
+            <h1 class="order-title">Design your perfect sticker</h1>
+            <p class="order-subtitle">Upload your artwork and customize every detail</p>
+        </header>
+
+        <form class="order-form" id="sticker-order-form" novalidate>
+            <div class="order-layout">
+                <!-- Left Column: Upload Section (Sticky) -->
+                <div class="order-upload-section">
+                    <div class="order-upload-card">
+                        <h2 class="order-section-title">Upload Artwork</h2>
+                        <div class="order-upload-area">
+                            <label class="order-upload-drop" id="upload-drop-zone">
+                                <span class="order-upload-icon">⬆︎</span>
+                                <span class="order-upload-title">Upload your design</span>
+                                <span class="order-upload-sub">Drag & drop or click to browse</span>
+                                <input
+                                    type="file"
+                                    name="artwork"
+                                    id="artwork-input"
+                                    accept=".jpg,.jpeg,.png,.gif,.bmp,.eps,.pdf,.ai,.svg,.psd,.tif,.tiff"
+                                    class="order-upload-input"
+                                />
+                            </label>
+                            <div class="order-upload-preview" id="upload-preview" style="display: none;">
+                                <div class="order-upload-preview-inner">
+                                    <img src="" alt="Preview" class="order-upload-preview-image" id="preview-image" />
+                                    <button type="button" class="order-upload-remove" id="remove-upload" aria-label="Remove upload">
+                                        <span>×</span>
+                                    </button>
+                                </div>
+                                <div class="order-upload-info" id="upload-info">
+                                    <span class="order-upload-filename" id="upload-filename"></span>
+                                    <span class="order-upload-size" id="upload-filesize"></span>
+                                </div>
+                            </div>
+                            <p class="order-upload-meta">Supports: JPG, PNG, GIF, BMP, EPS, PDF, AI, SVG, PSD, TIF, TIFF</p>
+                            <p class="order-upload-meta">Max file size: 50MB</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Configuration Options -->
+                <div class="order-config-section">
+                    <!-- Material Selection -->
+                    <div class="order-config-card">
+                        <h2 class="order-section-title">Material & Finish</h2>
+                        <p class="order-section-description">Choose your sticker material</p>
+                        <div class="order-materials-grid" id="materials-grid">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Size Selection -->
+                    <div class="order-config-card">
+                        <h2 class="order-section-title">Size</h2>
+                        <p class="order-section-description">Select sticker dimensions (width/height)</p>
+                        <div class="order-size-controls">
+                            <div class="order-size-slider-container">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="12"
+                                    step="0.5"
+                                    value="3"
+                                    id="size-slider"
+                                    class="order-size-slider"
+                                />
+                                <div class="order-size-value">
+                                    <span id="size-display">3.0</span><span class="order-size-unit">"</span>
+                                </div>
+                            </div>
+                            <div class="order-size-visual" id="size-visual">
+                                <div class="order-size-preview" id="size-preview-box"></div>
+                                <span class="order-size-label">Approximate size</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cutting Type -->
+                    <div class="order-config-card">
+                        <h2 class="order-section-title">Cutting Style</h2>
+                        <p class="order-section-description">How should we cut your stickers?</p>
+                        <div class="order-cutting-grid" id="cutting-grid">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="order-config-card">
+                        <h2 class="order-section-title">Quantity</h2>
+                        <p class="order-section-description">How many stickers do you need?</p>
+                        <div class="order-quantity-controls">
+                            <button type="button" class="order-qty-btn" id="qty-dec" aria-label="Decrease quantity">−</button>
+                            <input
+                                type="number"
+                                min="1"
+                                max="9999"
+                                value="25"
+                                id="quantity-input"
+                                class="order-qty-input"
+                            />
+                            <button type="button" class="order-qty-btn" id="qty-inc" aria-label="Increase quantity">+</button>
+                        </div>
+                        <div class="order-tier-hint" id="tier-hint" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 0L10.5 5.5L16 8L10.5 10.5L8 16L5.5 10.5L0 8L5.5 5.5L8 0Z"/>
+                            </svg>
+                            <span id="tier-hint-text"></span>
+                        </div>
+                    </div>
+
+                    <!-- Job Details -->
+                    <div class="order-config-card">
+                        <h2 class="order-section-title">Job Details</h2>
+                        <div class="order-field">
+                            <label for="job-name" class="order-field-label">Job Name</label>
+                            <input
+                                type="text"
+                                id="job-name"
+                                name="jobName"
+                                class="order-input"
+                                placeholder="e.g., Brand Logo Stickers"
+                                required
+                                maxlength="100"
+                            />
+                        </div>
+                        <div class="order-field">
+                            <label for="notes" class="order-field-label">Notes (Optional)</label>
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                class="order-textarea"
+                                rows="3"
+                                placeholder="Any special instructions or requirements?"
+                                maxlength="1000"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Pricing Card (Mobile Bottom) -->
+            <div class="order-pricing-sticky" id="pricing-card">
+                <div class="order-pricing-content">
+                    <div class="order-pricing-details">
+                        <div class="order-pricing-row">
+                            <span class="order-pricing-label">Per sticker</span>
+                            <div class="order-pricing-value-group">
+                                <span class="order-pricing-value" id="unit-price">$0.00</span>
+                                <span class="order-pricing-original" id="unit-price-original" style="display: none;">$0.00</span>
+                            </div>
+                        </div>
+                        <div class="order-pricing-row order-pricing-row--total">
+                            <span class="order-pricing-label">Total <span class="order-pricing-qty" id="pricing-qty">(25)</span></span>
+                            <span class="order-pricing-total" id="total-price">$0.00</span>
+                        </div>
+                        <div class="order-pricing-savings" id="pricing-savings" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 0L10.5 5.5L16 8L10.5 10.5L8 16L5.5 10.5L0 8L5.5 5.5L8 0Z"/>
+                            </svg>
+                            <span id="savings-text"></span>
+                        </div>
+                    </div>
+                    <div class="order-pricing-actions">
+                        <button type="button" class="order-btn order-btn--cart" id="add-to-cart-btn">
+                            Add to Cart
+                        </button>
+                        <button type="submit" class="order-btn order-btn--primary">
+                            Checkout Now
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="order-pricing-breakdown-toggle" id="breakdown-toggle">
+                    <span>See price breakdown</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M6 8L2 4h8L6 8z"/>
+                    </svg>
+                </button>
+                <div class="order-pricing-breakdown" id="pricing-breakdown" style="display: none;">
+                    <div class="order-breakdown-row">
+                        <span>Base price:</span>
+                        <span id="breakdown-base">$0.00</span>
+                    </div>
+                    <div class="order-breakdown-row" id="breakdown-material-row" style="display: none;">
+                        <span id="breakdown-material-label">Material adjustment:</span>
+                        <span id="breakdown-material">$0.00</span>
+                    </div>
+                    <div class="order-breakdown-row" id="breakdown-cutting-row" style="display: none;">
+                        <span id="breakdown-cutting-label">Cutting:</span>
+                        <span id="breakdown-cutting">$0.00</span>
+                    </div>
+                    <div class="order-breakdown-row" id="breakdown-discount-row" style="display: none;">
+                        <span id="breakdown-discount-label">Quantity discount:</span>
+                        <span id="breakdown-discount">-$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <footer class="order-footer">
+        <img
+            src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
+            alt="12ozCollective logo"
+            class="footer-logo"
+        />
+    </footer>
+
+    <script type="module" src="order.js"></script>
+    <script type="module">
+        import { initCartUI } from './lib/cart-ui.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initCartUI();
+        });
+    </script>
+</body>
+</html>
