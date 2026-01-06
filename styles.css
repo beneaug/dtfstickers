@@ -80,6 +80,7 @@ body {
 .content {
     position: relative;
     z-index: 4;
+    width: 100%;
     min-height: 100vh;
     min-height: -webkit-fill-available;
     display: flex;
@@ -98,8 +99,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: calc(100% - 4rem);
-    max-width: 100%;
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
     opacity: 0;
     animation: heroFadeIn 600ms ease-out 200ms forwards;
 }
@@ -115,7 +117,7 @@ body {
     letter-spacing: -0.02em;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    padding: 0 1rem;
+    padding: 0;
     max-width: 100%;
 }
 
@@ -169,7 +171,7 @@ body {
     }
     
     .hero-container {
-        width: calc(100% - 2rem);
+        max-width: 100%;
     }
     
     .hero-text {
