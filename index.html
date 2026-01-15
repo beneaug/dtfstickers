@@ -3,25 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>12oz Stickers | Premium Custom Stickers by 12ozCollective</title>
-    <meta name="description" content="Premium custom stickers from 12ozCollective. Die-cut, kiss-cut, and sheet stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
+    <title>12oz Stickers | Premium Custom Stickers That Actually Impress</title>
+    <meta name="description" content="Premium custom stickers from the garment decoration experts. Holographic, glitter, mirror, clear, kraft & more. No minimums. Bulk discounts. Fast shipping.">
 
     <!-- Social cards -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="12oz Stickers | Premium Custom Stickers">
-    <meta property="og:description" content="Premium custom stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
+    <meta property="og:description" content="Stickers that actually impress. Holographic, glitter, mirror, and more. From 1 to 100,000.">
     <meta property="og:image" content="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/IMG_3959.jpeg">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="12oz Stickers | Premium Custom Stickers">
-    <meta name="twitter:description" content="Premium custom stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
-    <meta name="twitter:image" content="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/IMG_3959.jpeg">
 
     <link rel="stylesheet" href="styles.css">
     <script src="video-loader.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
-    <!-- Background Videos -->
+    <!-- Background -->
     <video class="bg-video bg-video-placeholder" autoplay loop muted playsinline>
         <source src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/ssss.mp4" type="video/mp4">
     </video>
@@ -33,264 +29,472 @@
 
     <!-- Navigation -->
     <nav class="nav" id="nav">
-        <a href="index.html">
-            <img
-                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
-                alt="12ozCollective"
-                class="nav__logo"
-            />
+        <a href="index.html" class="nav__brand">
+            <img src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png" alt="12ozCollective" class="nav__logo"/>
         </a>
         <div class="nav__links">
-            <a href="order.html" class="nav__link">Order</a>
+            <a href="builder.html" class="nav__link">Create</a>
+            <a href="materials.html" class="nav__link">Materials</a>
+            <a href="business.html" class="nav__link">For Business</a>
             <a href="faq.html" class="nav__link">FAQ</a>
+        </div>
+        <div class="nav__actions">
+            <a href="builder.html" class="btn btn--primary btn--small nav__cta">Start Order</a>
+            <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
         </div>
     </nav>
 
-    <!-- Page Content -->
     <div class="page-content">
         <!-- Hero Section -->
-        <section class="section--hero">
-            <h1 class="hero-title">Stickers that stick.</h1>
-            <p class="hero-subtitle">
-                Premium custom stickers from the team behind 12ozCollective.
-                Vibrant colors, durable finishes, fast turnaround. No minimums.
-            </p>
-            <div class="hero-actions" style="display: flex; gap: 1rem; margin-top: 2rem; opacity: 0; animation: fadeInUp 700ms var(--ease-smooth) 600ms forwards;">
-                <a href="order.html" class="btn btn--primary btn--large">Order Now</a>
-                <a href="#benefits" class="btn btn--outline btn--large">Learn More</a>
+        <section class="hero">
+            <div class="hero__content">
+                <p class="hero__eyebrow fade-in-up">From the 12ozCollective print lab</p>
+                <h1 class="hero__title fade-in-up stagger-1">
+                    Not just stickers.<br/>
+                    <span class="hero__title-accent">Statements.</span>
+                </h1>
+                <p class="hero__subtitle fade-in-up stagger-2">
+                    Holographic that shifts. Glitter that catches light. Mirror that reflects.
+                    Premium materials that make people stop and look.
+                </p>
+                <div class="hero__actions fade-in-up stagger-3">
+                    <a href="builder.html" class="btn btn--primary btn--large">Create Your Stickers</a>
+                    <a href="business.html" class="btn btn--outline btn--large">Bulk & Wholesale</a>
+                </div>
+                <div class="hero__proof fade-in-up stagger-4">
+                    <span class="hero__proof-item">No minimums</span>
+                    <span class="hero__proof-divider"></span>
+                    <span class="hero__proof-item">Ships in 3-5 days</span>
+                    <span class="hero__proof-divider"></span>
+                    <span class="hero__proof-item">Made in USA</span>
+                </div>
+            </div>
+            <div class="hero__scroll-hint">
+                <span>Explore materials</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
             </div>
         </section>
 
-        <!-- Benefits Section -->
-        <section class="section" id="benefits" style="background: var(--color-bg); position: relative; z-index: 5;">
+        <!-- Materials Showcase -->
+        <section class="materials-showcase" id="materials">
             <div class="container">
-                <div class="text-center mb-lg">
-                    <h2 class="section-title fade-in-up">Why 12oz Stickers?</h2>
-                    <p class="section-subtitle fade-in-up stagger-1">The same quality obsession we bring to garment decoration, now for stickers.</p>
+                <div class="section-header">
+                    <h2 class="section-title fade-in-up">See the difference.</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">10 premium materials. Each one transforms your design into something tactile and real.</p>
                 </div>
 
-                <div class="benefits">
-                    <div class="benefit fade-in-up stagger-2">
-                        <div class="benefit__icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="materials-grid">
+                    <!-- Holographic -->
+                    <div class="material-card material-card--featured fade-in-up stagger-2" data-material="holographic">
+                        <div class="material-card__visual material-card__visual--holographic">
+                            <div class="material-card__shimmer"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Holographic</h3>
+                            <p class="material-card__desc">Rainbow iridescence that shifts with every angle. The showstopper.</p>
+                            <span class="material-card__tag">Most Popular</span>
+                        </div>
+                    </div>
+
+                    <!-- Mirror -->
+                    <div class="material-card fade-in-up stagger-3" data-material="mirror">
+                        <div class="material-card__visual material-card__visual--mirror">
+                            <div class="material-card__reflect"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Mirror</h3>
+                            <p class="material-card__desc">Chrome-like reflective finish. Silver, gold, or rose gold.</p>
+                        </div>
+                    </div>
+
+                    <!-- Glitter -->
+                    <div class="material-card fade-in-up stagger-4" data-material="glitter">
+                        <div class="material-card__visual material-card__visual--glitter">
+                            <div class="material-card__sparkle"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Glitter</h3>
+                            <p class="material-card__desc">Embedded sparkle that catches every light source.</p>
+                        </div>
+                    </div>
+
+                    <!-- Clear -->
+                    <div class="material-card fade-in-up stagger-5" data-material="clear">
+                        <div class="material-card__visual material-card__visual--clear">
+                            <div class="material-card__transparency"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Clear</h3>
+                            <p class="material-card__desc">Transparent vinyl. Your design floats on any surface.</p>
+                        </div>
+                    </div>
+
+                    <!-- White Vinyl -->
+                    <div class="material-card fade-in-up" data-material="vinyl">
+                        <div class="material-card__visual material-card__visual--vinyl"></div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">White Vinyl</h3>
+                            <p class="material-card__desc">The classic. Crisp colors, weatherproof, lasts for years.</p>
+                        </div>
+                    </div>
+
+                    <!-- Kraft -->
+                    <div class="material-card fade-in-up" data-material="kraft">
+                        <div class="material-card__visual material-card__visual--kraft"></div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Kraft Paper</h3>
+                            <p class="material-card__desc">100% recycled. Natural, earthy, eco-conscious.</p>
+                            <span class="material-card__tag material-card__tag--eco">Eco-Friendly</span>
+                        </div>
+                    </div>
+
+                    <!-- Brushed Aluminum -->
+                    <div class="material-card fade-in-up" data-material="aluminum">
+                        <div class="material-card__visual material-card__visual--aluminum">
+                            <div class="material-card__brushed"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Brushed Aluminum</h3>
+                            <p class="material-card__desc">Industrial metallic texture. Premium and modern.</p>
+                        </div>
+                    </div>
+
+                    <!-- Glow in the Dark -->
+                    <div class="material-card fade-in-up" data-material="glow">
+                        <div class="material-card__visual material-card__visual--glow">
+                            <div class="material-card__glow-effect"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Glow in the Dark</h3>
+                            <p class="material-card__desc">Charges under light, glows green in the dark.</p>
+                        </div>
+                    </div>
+
+                    <!-- Prismatic -->
+                    <div class="material-card fade-in-up" data-material="prismatic">
+                        <div class="material-card__visual material-card__visual--prismatic">
+                            <div class="material-card__prism"></div>
+                        </div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Prismatic</h3>
+                            <p class="material-card__desc">Kaleidoscopic color-shifting patterns. Mesmerizing.</p>
+                        </div>
+                    </div>
+
+                    <!-- Reflective -->
+                    <div class="material-card fade-in-up" data-material="reflective">
+                        <div class="material-card__visual material-card__visual--reflective"></div>
+                        <div class="material-card__info">
+                            <h3 class="material-card__name">Reflective</h3>
+                            <p class="material-card__desc">Lights up when hit by light. Safety and visibility.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="materials-cta fade-in-up">
+                    <a href="materials.html" class="btn btn--secondary">Explore All Materials</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section class="use-cases">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title fade-in-up">What are you making?</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">We'll help you pick the perfect material and size.</p>
+                </div>
+
+                <div class="use-case-grid">
+                    <a href="builder.html?use=merch" class="use-case-card fade-in-up stagger-2">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                <line x1="7" y1="7" x2="7.01" y2="7"/>
+                            </svg>
+                        </div>
+                        <h3 class="use-case-card__title">Merch & Retail</h3>
+                        <p class="use-case-card__desc">Stickers to sell or include with orders</p>
+                    </a>
+
+                    <a href="builder.html?use=labels" class="use-case-card fade-in-up stagger-3">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                        </div>
+                        <h3 class="use-case-card__title">Product Labels</h3>
+                        <p class="use-case-card__desc">Brand your packaging and products</p>
+                    </a>
+
+                    <a href="builder.html?use=promo" class="use-case-card fade-in-up stagger-4">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                             </svg>
                         </div>
-                        <h3 class="benefit__title">Premium Quality</h3>
-                        <p class="benefit__desc">Vivid, fade-resistant inks on premium vinyl. Weatherproof and built to last outdoors or indoors.</p>
-                    </div>
+                        <h3 class="use-case-card__title">Events & Promo</h3>
+                        <p class="use-case-card__desc">Giveaways, launches, and marketing</p>
+                    </a>
 
-                    <div class="benefit fade-in-up stagger-3">
-                        <div class="benefit__icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <a href="builder.html?use=personal" class="use-case-card fade-in-up stagger-5">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </div>
+                        <h3 class="use-case-card__title">Personal & Art</h3>
+                        <p class="use-case-card__desc">Your art, your laptop, your style</p>
+                    </a>
+
+                    <a href="builder.html?use=vehicle" class="use-case-card fade-in-up">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="1" y="3" width="15" height="13" rx="2"/>
+                                <path d="M16 8h4l3 5v5h-7V8z"/>
+                                <circle cx="5.5" cy="18.5" r="2.5"/>
+                                <circle cx="18.5" cy="18.5" r="2.5"/>
+                            </svg>
+                        </div>
+                        <h3 class="use-case-card__title">Vehicle & Outdoor</h3>
+                        <p class="use-case-card__desc">Bumper stickers and decals</p>
+                    </a>
+
+                    <a href="builder.html?use=window" class="use-case-card fade-in-up">
+                        <div class="use-case-card__icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <line x1="3" y1="12" x2="21" y2="12"/>
+                                <line x1="12" y1="3" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <h3 class="use-case-card__title">Windows & Walls</h3>
+                        <p class="use-case-card__desc">Storefronts and interior decor</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- For Business CTA -->
+        <section class="business-cta">
+            <div class="container">
+                <div class="business-cta__card fade-in-up">
+                    <div class="business-cta__content">
+                        <span class="business-cta__eyebrow">For Businesses</span>
+                        <h2 class="business-cta__title">Need 1,000+? Let's talk.</h2>
+                        <p class="business-cta__desc">Dedicated account support, volume pricing, faster turnaround, and flexible payment terms for qualifying orders.</p>
+                        <div class="business-cta__features">
+                            <div class="business-cta__feature">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span>Volume discounts up to 50%</span>
+                            </div>
+                            <div class="business-cta__feature">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span>Net 30 terms available</span>
+                            </div>
+                            <div class="business-cta__feature">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                <span>Dedicated account manager</span>
+                            </div>
+                        </div>
+                        <a href="business.html" class="btn btn--primary">Get a Quote</a>
+                    </div>
+                    <div class="business-cta__visual">
+                        <div class="business-cta__stack">
+                            <div class="business-cta__stack-item"></div>
+                            <div class="business-cta__stack-item"></div>
+                            <div class="business-cta__stack-item"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Pricing -->
+        <section class="quick-pricing">
+            <div class="container container--narrow">
+                <div class="section-header">
+                    <h2 class="section-title fade-in-up">Transparent pricing.</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">Volume discounts built in. The more you order, the more you save.</p>
+                </div>
+
+                <div class="pricing-calculator fade-in-up stagger-2">
+                    <div class="pricing-calculator__header">
+                        <h3>Quick Estimate</h3>
+                        <p class="text-muted">White vinyl die-cut stickers</p>
+                    </div>
+                    <div class="pricing-calculator__controls">
+                        <div class="pricing-calculator__control">
+                            <label class="form-label">Size</label>
+                            <div class="pricing-size-pills" id="pricing-size">
+                                <button class="pricing-pill" data-size="2x2">2"</button>
+                                <button class="pricing-pill pricing-pill--active" data-size="3x3">3"</button>
+                                <button class="pricing-pill" data-size="4x4">4"</button>
+                                <button class="pricing-pill" data-size="5x5">5"</button>
+                            </div>
+                        </div>
+                        <div class="pricing-calculator__control">
+                            <label class="form-label">Quantity</label>
+                            <div class="pricing-qty-slider">
+                                <input type="range" id="pricing-qty" min="10" max="1000" value="100" step="10">
+                                <div class="pricing-qty-labels">
+                                    <span>10</span>
+                                    <span>250</span>
+                                    <span>500</span>
+                                    <span>1000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pricing-calculator__result">
+                        <div class="pricing-result__breakdown">
+                            <div class="pricing-result__row">
+                                <span class="pricing-result__label">Quantity</span>
+                                <span class="pricing-result__value" id="pricing-result-qty">100</span>
+                            </div>
+                            <div class="pricing-result__row">
+                                <span class="pricing-result__label">Per sticker</span>
+                                <span class="pricing-result__value" id="pricing-result-unit">$0.80</span>
+                            </div>
+                        </div>
+                        <div class="pricing-result__total">
+                            <span class="pricing-result__total-label">Total</span>
+                            <span class="pricing-result__total-value" id="pricing-result-total">$80.00</span>
+                        </div>
+                    </div>
+                    <a href="builder.html" class="btn btn--primary w-full">Customize & Order</a>
+                </div>
+
+                <p class="text-muted text-center fade-in-up stagger-3" style="margin-top: 1.5rem; font-size: 0.85rem;">
+                    Pricing varies by material. Holographic, glitter, and specialty materials have different pricing.
+                    <a href="materials.html" style="color: var(--color-text); text-decoration: underline;">See all materials</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Trust Section -->
+        <section class="trust-section">
+            <div class="container">
+                <div class="trust-grid">
+                    <div class="trust-item fade-in-up">
+                        <div class="trust-item__icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                        </div>
+                        <h4 class="trust-item__title">Weatherproof</h4>
+                        <p class="trust-item__desc">UV and water resistant. Dishwasher safe. Built to last outdoors.</p>
+                    </div>
+                    <div class="trust-item fade-in-up stagger-1">
+                        <div class="trust-item__icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                             </svg>
                         </div>
-                        <h3 class="benefit__title">Fast Turnaround</h3>
-                        <p class="benefit__desc">Most orders ship within 3-5 business days. Rush options available for tight deadlines.</p>
+                        <h4 class="trust-item__title">Fast Production</h4>
+                        <p class="trust-item__desc">Most orders ship in 3-5 business days. Rush available.</p>
                     </div>
-
-                    <div class="benefit fade-in-up stagger-4">
-                        <div class="benefit__icon">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2v4"/>
-                                <path d="M12 18v4"/>
-                                <path d="M4.93 4.93l2.83 2.83"/>
-                                <path d="M16.24 16.24l2.83 2.83"/>
-                                <path d="M2 12h4"/>
-                                <path d="M18 12h4"/>
-                                <path d="M4.93 19.07l2.83-2.83"/>
-                                <path d="M16.24 7.76l2.83-2.83"/>
+                    <div class="trust-item fade-in-up stagger-2">
+                        <div class="trust-item__icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
                             </svg>
                         </div>
-                        <h3 class="benefit__title">No Minimums</h3>
-                        <p class="benefit__desc">Order as few or as many as you need. Perfect for testing designs or large-scale campaigns.</p>
+                        <h4 class="trust-item__title">Made in USA</h4>
+                        <p class="trust-item__desc">Printed in our facility alongside our DTF transfers.</p>
+                    </div>
+                    <div class="trust-item fade-in-up stagger-3">
+                        <div class="trust-item__icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                        </div>
+                        <h4 class="trust-item__title">Proof Included</h4>
+                        <p class="trust-item__desc">Free digital proof on every order. We don't print until you approve.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Product Types Section -->
-        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5;">
-            <div class="container">
-                <div class="text-center mb-lg">
-                    <h2 class="section-title fade-in-up">Sticker Types</h2>
-                    <p class="section-subtitle fade-in-up stagger-1">Choose the perfect format for your project.</p>
-                </div>
-
-                <div class="product-grid">
-                    <!-- Die-Cut Stickers -->
-                    <div class="product-card card--interactive fade-in-up stagger-2">
-                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(255,122,24,0.1) 0%, rgba(255,179,71,0.05) 100%);">
-                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
-                                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/>
-                                <path d="M12 12l8-4.5"/>
-                                <path d="M12 12v9"/>
-                                <path d="M12 12L4 7.5"/>
-                            </svg>
-                        </div>
-                        <div class="product-card__content">
-                            <h3 class="product-card__title">Die-Cut Stickers</h3>
-                            <p class="product-card__price">Starting at <span>$0.50/ea</span></p>
-                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Cut precisely to the shape of your design. Perfect for logos, characters, and custom shapes.</p>
-                            <a href="order.html?type=die-cut" class="btn btn--secondary btn--small mt-lg">Order Die-Cut</a>
-                        </div>
-                    </div>
-
-                    <!-- Kiss-Cut Stickers -->
-                    <div class="product-card card--interactive fade-in-up stagger-3">
-                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(158,247,197,0.1) 0%, rgba(158,247,197,0.02) 100%);">
-                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <path d="M8 8h8v8H8z"/>
-                            </svg>
-                        </div>
-                        <div class="product-card__content">
-                            <h3 class="product-card__title">Kiss-Cut Stickers</h3>
-                            <p class="product-card__price">Starting at <span>$0.35/ea</span></p>
-                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Easy peel-and-stick on a square backing. Great for handouts, packaging, and retail.</p>
-                            <a href="order.html?type=kiss-cut" class="btn btn--secondary btn--small mt-lg">Order Kiss-Cut</a>
-                        </div>
-                    </div>
-
-                    <!-- Sticker Sheets -->
-                    <div class="product-card card--interactive fade-in-up stagger-4">
-                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(255,211,130,0.1) 0%, rgba(255,211,130,0.02) 100%);">
-                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <circle cx="8" cy="8" r="2"/>
-                                <circle cx="16" cy="8" r="2"/>
-                                <circle cx="8" cy="16" r="2"/>
-                                <circle cx="16" cy="16" r="2"/>
-                            </svg>
-                        </div>
-                        <div class="product-card__content">
-                            <h3 class="product-card__title">Sticker Sheets</h3>
-                            <p class="product-card__price">Starting at <span>$2.50/sheet</span></p>
-                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Multiple designs on one sheet. Perfect for variety packs, collectibles, and merch bundles.</p>
-                            <a href="order.html?type=sheet" class="btn btn--secondary btn--small mt-lg">Order Sheets</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Pricing Section -->
-        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5;">
-            <div class="container container--narrow">
-                <div class="text-center mb-lg">
-                    <h2 class="section-title fade-in-up">Simple Pricing</h2>
-                    <p class="section-subtitle fade-in-up stagger-1">Volume discounts on all orders. The more you order, the more you save.</p>
-                </div>
-
-                <div class="card fade-in-up stagger-2" style="overflow-x: auto;">
-                    <table class="pricing-table">
-                        <thead>
-                            <tr>
-                                <th>Size</th>
-                                <th>1-49</th>
-                                <th>50-99</th>
-                                <th>100-249</th>
-                                <th>250+</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>2" x 2"</td>
-                                <td>$0.75</td>
-                                <td>$0.60</td>
-                                <td>$0.45</td>
-                                <td>$0.35</td>
-                            </tr>
-                            <tr>
-                                <td>3" x 3"</td>
-                                <td>$1.25</td>
-                                <td>$1.00</td>
-                                <td>$0.80</td>
-                                <td>$0.65</td>
-                            </tr>
-                            <tr>
-                                <td>4" x 4"</td>
-                                <td>$1.75</td>
-                                <td>$1.40</td>
-                                <td>$1.15</td>
-                                <td>$0.95</td>
-                            </tr>
-                            <tr>
-                                <td>5" x 5"</td>
-                                <td>$2.50</td>
-                                <td>$2.00</td>
-                                <td>$1.65</td>
-                                <td>$1.35</td>
-                            </tr>
-                            <tr class="pricing-table__highlight">
-                                <td>Custom Size</td>
-                                <td colspan="4" style="text-align: center;">Contact for quote</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <p class="text-muted text-center" style="margin-top: 1rem; font-size: 0.85rem;">Die-cut pricing shown. Kiss-cut and sheet pricing may vary. All prices in USD.</p>
-                </div>
-
-                <div class="text-center" style="margin-top: 2rem;">
-                    <a href="order.html" class="btn btn--primary btn--large fade-in-up stagger-3">Get Started</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- CTA Section -->
-        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5; padding-bottom: 6rem;">
+        <!-- Final CTA -->
+        <section class="final-cta">
             <div class="container container--content text-center">
-                <h2 class="section-title fade-in-up">Ready to stick it?</h2>
-                <p class="section-subtitle fade-in-up stagger-1" style="margin-bottom: 2rem;">Upload your artwork and get premium stickers delivered to your door.</p>
-                <div class="flex justify-center gap-md fade-in-up stagger-2">
-                    <a href="order.html" class="btn btn--primary btn--large">Start Your Order</a>
-                </div>
+                <h2 class="final-cta__title fade-in-up">Ready to make something?</h2>
+                <p class="final-cta__subtitle fade-in-up stagger-1">Upload your design and see it come to life on any of our premium materials.</p>
+                <a href="builder.html" class="btn btn--primary btn--large fade-in-up stagger-2">Start Creating</a>
             </div>
         </section>
 
         <!-- Footer -->
-        <footer class="page-footer" style="background: var(--color-bg); position: relative; z-index: 5;">
-            <img
-                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
-                alt="12ozCollective logo"
-                class="footer-logo"
-            />
-            <div class="footer-links">
-                <a href="order.html" class="footer-link">Order</a>
-                <a href="faq.html" class="footer-link">FAQ</a>
-                <a href="https://12ozcollective.com" class="footer-link" target="_blank" rel="noopener">12ozCollective</a>
+        <footer class="footer">
+            <div class="container">
+                <div class="footer__main">
+                    <div class="footer__brand">
+                        <img src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png" alt="12ozCollective" class="footer__logo"/>
+                        <p class="footer__tagline">Premium stickers from the garment decoration experts.</p>
+                    </div>
+                    <div class="footer__links">
+                        <div class="footer__column">
+                            <h4 class="footer__column-title">Products</h4>
+                            <a href="builder.html" class="footer__link">Create Stickers</a>
+                            <a href="materials.html" class="footer__link">Materials</a>
+                            <a href="builder.html?type=sheet" class="footer__link">Sticker Sheets</a>
+                            <a href="builder.html?type=roll" class="footer__link">Roll Stickers</a>
+                        </div>
+                        <div class="footer__column">
+                            <h4 class="footer__column-title">Business</h4>
+                            <a href="business.html" class="footer__link">Wholesale</a>
+                            <a href="business.html#pricing" class="footer__link">Volume Pricing</a>
+                            <a href="business.html#account" class="footer__link">Business Accounts</a>
+                        </div>
+                        <div class="footer__column">
+                            <h4 class="footer__column-title">Support</h4>
+                            <a href="faq.html" class="footer__link">FAQ</a>
+                            <a href="mailto:stickers@12ozcollective.com" class="footer__link">Contact</a>
+                            <a href="https://12ozcollective.com" class="footer__link" target="_blank">12ozCollective</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer__bottom">
+                    <p>&copy; 2025 12ozCollective. All rights reserved.</p>
+                </div>
             </div>
-            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.8rem;">&copy; 2025 12ozCollective. All rights reserved.</p>
         </footer>
     </div>
 
-    <!-- Cart Toggle (Hidden until items added) -->
+    <!-- Cart (hidden until items) -->
     <button class="cart-toggle" id="cart-toggle" style="display: none;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1"/>
-            <circle cx="20" cy="21" r="1"/>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
         </svg>
-        Cart
-        <span class="cart-toggle__count" id="cart-count">0</span>
+        Cart <span class="cart-toggle__count" id="cart-count">0</span>
     </button>
-
-    <!-- Cart Overlay -->
     <div class="cart-overlay" id="cart-overlay"></div>
-
-    <!-- Cart Drawer -->
     <div class="cart-drawer" id="cart-drawer">
         <div class="cart-drawer__header">
             <h3 class="cart-drawer__title">Your Cart</h3>
             <button class="cart-drawer__close" id="cart-close">&times;</button>
         </div>
         <div class="cart-drawer__content" id="cart-items">
-            <div class="cart-empty">
-                <div class="cart-empty__icon">🛒</div>
-                <p>Your cart is empty</p>
-            </div>
+            <div class="cart-empty"><div class="cart-empty__icon">🛒</div><p>Your cart is empty</p></div>
         </div>
         <div class="cart-drawer__footer">
             <div class="cart-total">
@@ -300,8 +504,6 @@
             <button class="btn btn--primary w-full" id="checkout-btn" disabled>Checkout</button>
         </div>
     </div>
-
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 </body>
 </html>

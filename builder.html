@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Create Stickers | 12oz Stickers</title>
+    <meta name="description" content="Design and order custom stickers. Upload your artwork, choose from 10 premium materials, and see your sticker come to life.">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="builder.css">
+    <script src="app.js" defer></script>
+    <script src="builder.js" defer></script>
+</head>
+<body class="builder-page">
+    <div class="bg-grain-overlay"></div>
+
+    <!-- Minimal Navigation -->
+    <nav class="builder-nav">
+        <a href="index.html" class="builder-nav__back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Back</span>
+        </a>
+        <span class="builder-nav__title">Create Stickers</span>
+        <div class="builder-nav__actions">
+            <button class="btn btn--ghost btn--small" id="help-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Help
+            </button>
+        </div>
+    </nav>
+
+    <!-- Builder Layout -->
+    <div class="builder">
+        <!-- Preview Panel -->
+        <div class="builder__preview">
+            <div class="preview-container">
+                <!-- Surface Selector -->
+                <div class="surface-selector">
+                    <button class="surface-btn surface-btn--active" data-surface="blank" title="Blank">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        </svg>
+                    </button>
+                    <button class="surface-btn" data-surface="laptop" title="Laptop">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <path d="M2 17h20l-2 4H4l-2-4z"/>
+                        </svg>
+                    </button>
+                    <button class="surface-btn" data-surface="bottle" title="Water Bottle">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M8 2h8v3H8zM6 5h12v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5z"/>
+                            <path d="M7 9h10l1 13H6L7 9z"/>
+                        </svg>
+                    </button>
+                    <button class="surface-btn" data-surface="packaging" title="Packaging">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Sticker Preview -->
+                <div class="sticker-mockup" id="sticker-mockup">
+                    <div class="sticker-mockup__surface" id="mockup-surface">
+                        <div class="sticker-mockup__sticker" id="mockup-sticker">
+                            <!-- Upload placeholder -->
+                            <div class="upload-placeholder" id="upload-placeholder">
+                                <div class="upload-placeholder__icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <p class="upload-placeholder__text">Drop your artwork here</p>
+                                <p class="upload-placeholder__hint">or click to browse</p>
+                            </div>
+                            <!-- Preview image (hidden until upload) -->
+                            <img id="preview-image" class="sticker-mockup__image" src="" alt="Sticker preview" style="display: none;">
+                        </div>
+                    </div>
+
+                    <!-- Material effect overlay -->
+                    <div class="material-effect" id="material-effect"></div>
+                </div>
+
+                <!-- Size indicator -->
+                <div class="size-indicator" id="size-indicator">
+                    <span id="size-display">3" × 3"</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="builder__controls">
+            <div class="controls-scroll">
+                <!-- Upload Section -->
+                <div class="control-section" id="upload-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">1</span>
+                        <h3 class="control-section__title">Upload Artwork</h3>
+                    </div>
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.pdf,.ai,.eps,.svg" style="display: none;">
+                        <div class="upload-area__content" id="upload-content">
+                            <div class="upload-area__icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <p class="upload-area__text">Click or drag to upload</p>
+                            <p class="upload-area__hint">PNG, JPG, PDF, AI, EPS, SVG • Max 50MB</p>
+                        </div>
+                        <!-- Uploaded file info (hidden until upload) -->
+                        <div class="upload-area__file" id="upload-file" style="display: none;">
+                            <div class="upload-file__info">
+                                <span class="upload-file__name" id="file-name"></span>
+                                <span class="upload-file__size" id="file-size"></span>
+                            </div>
+                            <button class="upload-file__remove" id="remove-file" type="button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cut Type Section -->
+                <div class="control-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">2</span>
+                        <h3 class="control-section__title">Cut Style</h3>
+                    </div>
+                    <div class="cut-selector" id="cut-selector">
+                        <button class="cut-option cut-option--active" data-cut="die-cut">
+                            <div class="cut-option__visual">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/>
+                                </svg>
+                            </div>
+                            <div class="cut-option__info">
+                                <span class="cut-option__name">Die-Cut</span>
+                                <span class="cut-option__desc">Cut to shape</span>
+                            </div>
+                        </button>
+                        <button class="cut-option" data-cut="kiss-cut">
+                            <div class="cut-option__visual">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M8 8h8v8H8z" stroke-dasharray="2 2"/>
+                                </svg>
+                            </div>
+                            <div class="cut-option__info">
+                                <span class="cut-option__name">Kiss-Cut</span>
+                                <span class="cut-option__desc">On backing</span>
+                            </div>
+                        </button>
+                        <button class="cut-option" data-cut="sheet">
+                            <div class="cut-option__visual">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8" cy="8" r="2"/>
+                                    <circle cx="16" cy="8" r="2"/>
+                                    <circle cx="8" cy="16" r="2"/>
+                                    <circle cx="16" cy="16" r="2"/>
+                                </svg>
+                            </div>
+                            <div class="cut-option__info">
+                                <span class="cut-option__name">Sheet</span>
+                                <span class="cut-option__desc">Multiple</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Material Section -->
+                <div class="control-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">3</span>
+                        <h3 class="control-section__title">Material</h3>
+                    </div>
+                    <div class="material-selector" id="material-selector">
+                        <button class="material-option material-option--active" data-material="vinyl">
+                            <div class="material-option__swatch material-swatch--vinyl"></div>
+                            <span class="material-option__name">White Vinyl</span>
+                            <span class="material-option__price">Included</span>
+                        </button>
+                        <button class="material-option" data-material="clear">
+                            <div class="material-option__swatch material-swatch--clear"></div>
+                            <span class="material-option__name">Clear</span>
+                            <span class="material-option__price">+$0.10</span>
+                        </button>
+                        <button class="material-option" data-material="holographic">
+                            <div class="material-option__swatch material-swatch--holographic"></div>
+                            <span class="material-option__name">Holographic</span>
+                            <span class="material-option__price">+$0.35</span>
+                        </button>
+                        <button class="material-option" data-material="glitter">
+                            <div class="material-option__swatch material-swatch--glitter"></div>
+                            <span class="material-option__name">Glitter</span>
+                            <span class="material-option__price">+$0.30</span>
+                        </button>
+                        <button class="material-option" data-material="mirror">
+                            <div class="material-option__swatch material-swatch--mirror"></div>
+                            <span class="material-option__name">Mirror</span>
+                            <span class="material-option__price">+$0.40</span>
+                        </button>
+                        <button class="material-option" data-material="kraft">
+                            <div class="material-option__swatch material-swatch--kraft"></div>
+                            <span class="material-option__name">Kraft</span>
+                            <span class="material-option__price">+$0.05</span>
+                        </button>
+                        <button class="material-option" data-material="glow">
+                            <div class="material-option__swatch material-swatch--glow"></div>
+                            <span class="material-option__name">Glow</span>
+                            <span class="material-option__price">+$0.50</span>
+                        </button>
+                        <button class="material-option" data-material="aluminum">
+                            <div class="material-option__swatch material-swatch--aluminum"></div>
+                            <span class="material-option__name">Aluminum</span>
+                            <span class="material-option__price">+$0.45</span>
+                        </button>
+                    </div>
+                    <a href="materials.html" class="control-section__link">Learn about materials →</a>
+                </div>
+
+                <!-- Finish Section -->
+                <div class="control-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">4</span>
+                        <h3 class="control-section__title">Finish</h3>
+                    </div>
+                    <div class="finish-selector" id="finish-selector">
+                        <button class="finish-option finish-option--active" data-finish="gloss">
+                            <span class="finish-option__name">Gloss</span>
+                            <span class="finish-option__desc">Shiny & vibrant</span>
+                        </button>
+                        <button class="finish-option" data-finish="matte">
+                            <span class="finish-option__name">Matte</span>
+                            <span class="finish-option__desc">Soft & elegant</span>
+                        </button>
+                        <button class="finish-option" data-finish="satin">
+                            <span class="finish-option__name">Satin</span>
+                            <span class="finish-option__desc">Subtle sheen</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Size Section -->
+                <div class="control-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">5</span>
+                        <h3 class="control-section__title">Size</h3>
+                    </div>
+                    <div class="size-selector-grid" id="size-selector">
+                        <button class="size-option" data-size="2x2">
+                            <span class="size-option__size">2"</span>
+                        </button>
+                        <button class="size-option size-option--active" data-size="3x3">
+                            <span class="size-option__size">3"</span>
+                        </button>
+                        <button class="size-option" data-size="4x4">
+                            <span class="size-option__size">4"</span>
+                        </button>
+                        <button class="size-option" data-size="5x5">
+                            <span class="size-option__size">5"</span>
+                        </button>
+                        <button class="size-option" data-size="custom">
+                            <span class="size-option__size">Custom</span>
+                        </button>
+                    </div>
+                    <!-- Custom Size Inputs -->
+                    <div class="custom-size-inputs" id="custom-size-inputs" style="display: none;">
+                        <div class="custom-size-field">
+                            <label>Width</label>
+                            <div class="custom-size-input">
+                                <input type="number" id="custom-width" min="1" max="12" step="0.25" value="3">
+                                <span>in</span>
+                            </div>
+                        </div>
+                        <span class="custom-size-x">×</span>
+                        <div class="custom-size-field">
+                            <label>Height</label>
+                            <div class="custom-size-input">
+                                <input type="number" id="custom-height" min="1" max="12" step="0.25" value="3">
+                                <span>in</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quantity Section -->
+                <div class="control-section">
+                    <div class="control-section__header">
+                        <span class="control-section__number">6</span>
+                        <h3 class="control-section__title">Quantity</h3>
+                    </div>
+                    <div class="quantity-selector">
+                        <div class="quantity-presets" id="quantity-presets">
+                            <button class="qty-preset" data-qty="25">25</button>
+                            <button class="qty-preset" data-qty="50">50</button>
+                            <button class="qty-preset qty-preset--active" data-qty="100">100</button>
+                            <button class="qty-preset" data-qty="250">250</button>
+                            <button class="qty-preset" data-qty="500">500</button>
+                            <button class="qty-preset" data-qty="1000">1000</button>
+                        </div>
+                        <div class="quantity-custom">
+                            <label>Or enter amount:</label>
+                            <input type="number" id="quantity-input" min="1" max="100000" value="100">
+                        </div>
+                        <div class="quantity-tier" id="quantity-tier">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span>100-249: Good value tier</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Section (collapsible) -->
+                <div class="control-section control-section--collapsible">
+                    <button class="control-section__header control-section__toggle" id="notes-toggle">
+                        <span class="control-section__number">+</span>
+                        <h3 class="control-section__title">Special Instructions</h3>
+                    </button>
+                    <div class="control-section__body" id="notes-body" style="display: none;">
+                        <textarea id="notes" class="notes-textarea" placeholder="Any special requests for your order..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary (sticky) -->
+            <div class="order-footer">
+                <div class="order-summary-mini">
+                    <div class="order-summary-mini__row">
+                        <span>Unit price</span>
+                        <span id="unit-price">$0.80</span>
+                    </div>
+                    <div class="order-summary-mini__row order-summary-mini__row--total">
+                        <span>Total</span>
+                        <span id="total-price">$80.00</span>
+                    </div>
+                </div>
+                <button class="btn btn--primary btn--large w-full" id="add-to-cart-btn">
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart components -->
+    <button class="cart-toggle" id="cart-toggle" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        Cart <span class="cart-toggle__count" id="cart-count">0</span>
+    </button>
+    <div class="cart-overlay" id="cart-overlay"></div>
+    <div class="cart-drawer" id="cart-drawer">
+        <div class="cart-drawer__header">
+            <h3 class="cart-drawer__title">Your Cart</h3>
+            <button class="cart-drawer__close" id="cart-close">&times;</button>
+        </div>
+        <div class="cart-drawer__content" id="cart-items">
+            <div class="cart-empty"><div class="cart-empty__icon">🛒</div><p>Your cart is empty</p></div>
+        </div>
+        <div class="cart-drawer__footer">
+            <div class="cart-total">
+                <span class="cart-total__label">Total</span>
+                <span class="cart-total__amount" id="cart-total">$0.00</span>
+            </div>
+            <button class="btn btn--primary w-full" id="checkout-btn" disabled>Checkout</button>
+        </div>
+    </div>
+    <div id="toast-container"></div>
+</body>
+</html>

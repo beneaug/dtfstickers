@@ -1,6 +1,6 @@
 /**
  * 12oz Stickers - Main Application JavaScript
- * Handles cart, order form, FAQ, and UI interactions
+ * Handles cart, order form, FAQ, homepage interactions, and UI
  */
 
 (function() {
@@ -28,6 +28,29 @@
             '4x4': { '1-49': 4.50, '50-99': 3.60, '100-249': 2.95, '250+': 2.45 },
             '5x5': { '1-49': 5.50, '50-99': 4.40, '100-249': 3.60, '250+': 3.00 }
         }
+    };
+
+    // Homepage pricing calculator config
+    const CALC_PRICING = {
+        sizes: {
+            '2': 0.60,
+            '3': 0.80,
+            '4': 1.10,
+            '5': 1.45
+        },
+        materials: {
+            'vinyl': 0,
+            'clear': 0.10,
+            'holographic': 0.35,
+            'glitter': 0.30
+        },
+        tiers: [
+            { min: 50, max: 99, discount: 0.05 },
+            { min: 100, max: 249, discount: 0.10 },
+            { min: 250, max: 499, discount: 0.18 },
+            { min: 500, max: 999, discount: 0.25 },
+            { min: 1000, max: Infinity, discount: 0.32 }
+        ]
     };
 
     const FINISH_UPCHARGE = {
@@ -74,20 +97,34 @@
     }
 
     // ============================================
-    // Toast Notifications
+    // Toast Notifications (Global)
     // ============================================
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         if (!container) return;
 
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '!',
+            info: 'ℹ'
+        };
+
         const toast = document.createElement('div');
         toast.className = `toast toast--${type}`;
         toast.innerHTML = `
-            <div class="toast__icon">${type === 'success' ? '✓' : '!'}</div>
+            <div class="toast__icon">${icons[type] || icons.info}</div>
             <span class="toast__message">${message}</span>
+            <button class="toast__close">&times;</button>
         `;
 
         container.appendChild(toast);
+
+        // Close button
+        toast.querySelector('.toast__close').addEventListener('click', () => {
+            toast.classList.remove('toast--visible');
+            setTimeout(() => toast.remove(), 400);
+        });
 
         // Trigger animation
         requestAnimationFrame(() => {
@@ -98,8 +135,11 @@
         setTimeout(() => {
             toast.classList.remove('toast--visible');
             setTimeout(() => toast.remove(), 400);
-        }, 3000);
+        }, 4000);
     }
+
+    // Make showToast globally accessible
+    window.showToast = showToast;
 
     // ============================================
     // Cart Functions
@@ -178,13 +218,16 @@
 
     function addToCart(item) {
         cart.push({
-            id: generateCartItemId(),
+            id: item.id || generateCartItemId(),
             ...item
         });
         saveCart();
         updateCartUI();
         showToast('Added to cart!');
     }
+
+    // Make addToCart globally accessible for builder.js
+    window.addToCart = addToCart;
 
     function removeFromCart(itemId) {
         cart = cart.filter(item => item.id !== itemId);
@@ -600,6 +643,158 @@
     }
 
     // ============================================
+    // Homepage Pricing Calculator
+    // ============================================
+    function initPricingCalculator() {
+        const calculator = document.getElementById('pricing-calculator');
+        if (!calculator) return;
+
+        const sizeSelect = document.getElementById('calc-size');
+        const materialSelect = document.getElementById('calc-material');
+        const qtyInput = document.getElementById('calc-quantity');
+        const unitPriceEl = document.getElementById('calc-unit-price');
+        const totalPriceEl = document.getElementById('calc-total-price');
+        const savingsEl = document.getElementById('calc-savings');
+
+        if (!sizeSelect || !materialSelect || !qtyInput) return;
+
+        function calculatePrice() {
+            const size = sizeSelect.value;
+            const material = materialSelect.value;
+            const qty = parseInt(qtyInput.value) || 100;
+
+            // Base price
+            let basePrice = CALC_PRICING.sizes[size] || 0.80;
+
+            // Material addon
+            basePrice += CALC_PRICING.materials[material] || 0;
+
+            // Find discount tier
+            let discount = 0;
+            for (const tier of CALC_PRICING.tiers) {
+                if (qty >= tier.min && qty <= tier.max) {
+                    discount = tier.discount;
+                    break;
+                }
+            }
+
+            const unitPrice = basePrice * (1 - discount);
+            const totalPrice = unitPrice * qty;
+            const savings = discount > 0 ? (basePrice * discount * qty) : 0;
+
+            // Update UI
+            if (unitPriceEl) unitPriceEl.textContent = '$' + unitPrice.toFixed(2);
+            if (totalPriceEl) totalPriceEl.textContent = '$' + totalPrice.toFixed(2);
+            if (savingsEl) {
+                if (savings > 0) {
+                    savingsEl.textContent = 'You save $' + savings.toFixed(2) + ' (' + Math.round(discount * 100) + '% off)';
+                    savingsEl.style.display = 'block';
+                } else {
+                    savingsEl.style.display = 'none';
+                }
+            }
+        }
+
+        sizeSelect.addEventListener('change', calculatePrice);
+        materialSelect.addEventListener('change', calculatePrice);
+        qtyInput.addEventListener('input', calculatePrice);
+
+        // Initial calculation
+        calculatePrice();
+    }
+
+    // ============================================
+    // Homepage Material Cards
+    // ============================================
+    function initMaterialCards() {
+        const materialCards = document.querySelectorAll('.material-card');
+        if (!materialCards.length) return;
+
+        materialCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                // Add subtle pulse effect
+                card.style.transform = 'translateY(-8px)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = '';
+            });
+
+            // Click to navigate to builder with material preselected
+            card.addEventListener('click', () => {
+                const material = card.dataset.material;
+                if (material) {
+                    window.location.href = `builder.html?material=${material}`;
+                }
+            });
+        });
+    }
+
+    // ============================================
+    // Homepage Use Case Cards
+    // ============================================
+    function initUseCaseCards() {
+        const useCaseCards = document.querySelectorAll('.use-case-card');
+        if (!useCaseCards.length) return;
+
+        useCaseCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Don't navigate if clicking on an actual link
+                if (e.target.tagName === 'A') return;
+
+                const link = card.querySelector('a');
+                if (link) {
+                    window.location.href = link.href;
+                }
+            });
+        });
+    }
+
+    // ============================================
+    // Mobile Navigation
+    // ============================================
+    function initMobileNav() {
+        const mobileToggle = document.getElementById('mobile-nav-toggle');
+        const navLinks = document.querySelector('.nav__links');
+
+        if (!mobileToggle || !navLinks) return;
+
+        mobileToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('nav__links--open');
+            mobileToggle.classList.toggle('active');
+        });
+
+        // Close on link click
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('nav__links--open');
+                mobileToggle.classList.remove('active');
+            });
+        });
+    }
+
+    // ============================================
+    // Smooth Scroll for Anchor Links
+    // ============================================
+    function initSmoothScroll() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+
+                const target = document.querySelector(targetId);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    }
+
+    // ============================================
     // Initialize
     // ============================================
     function init() {
@@ -608,6 +803,11 @@
         initFAQ();
         initScrollAnimations();
         initNavScroll();
+        initPricingCalculator();
+        initMaterialCards();
+        initUseCaseCards();
+        initMobileNav();
+        initSmoothScroll();
     }
 
     // Run on DOM ready
