@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FAQ | 12oz Stickers</title>
-    <meta name="description" content="Frequently asked questions about 12oz Stickers. Learn about our sticker types, materials, turnaround times, and more.">
+    <meta name="description" content="Frequently asked questions about 12oz Stickers. Learn about materials, turnaround times, file requirements, and more.">
 
     <link rel="stylesheet" href="styles.css">
     <script src="app.js" defer></script>
@@ -13,262 +13,275 @@
     <div class="bg-grain-overlay"></div>
 
     <!-- Navigation -->
-    <nav class="nav nav--scrolled" id="nav">
-        <a href="index.html">
-            <img
-                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
-                alt="12ozCollective"
-                class="nav__logo"
-            />
+    <nav class="nav" id="nav">
+        <a href="index.html" class="nav__brand">
+            <img src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png" alt="12ozCollective" class="nav__logo"/>
         </a>
         <div class="nav__links">
-            <a href="order.html" class="nav__link">Order</a>
+            <a href="builder.html" class="nav__link">Create</a>
+            <a href="materials.html" class="nav__link">Materials</a>
+            <a href="business.html" class="nav__link">For Business</a>
             <a href="faq.html" class="nav__link nav__link--active">FAQ</a>
+        </div>
+        <div class="nav__actions">
+            <a href="builder.html" class="btn btn--primary btn--small nav__cta">Start Order</a>
+            <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
         </div>
     </nav>
 
-    <!-- Page Content -->
-    <div class="page-content" style="padding-top: 100px; padding-bottom: 4rem;">
-        <div class="container container--content">
-            <!-- Page Header -->
-            <div class="text-center mb-lg fade-in-up">
-                <h1 class="section-title">Frequently Asked Questions</h1>
-                <p class="section-subtitle">Everything you need to know about ordering stickers from 12oz.</p>
+    <main class="page-main">
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-header__title">Frequently Asked Questions</h1>
+                <p class="page-header__subtitle">
+                    Everything you need to know about ordering custom stickers.
+                </p>
             </div>
+        </section>
 
-            <!-- FAQ List -->
-            <div class="faq-list fade-in-up stagger-1">
-                <!-- FAQ Item 1 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>What's the difference between die-cut and kiss-cut stickers?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            <strong>Die-cut stickers</strong> are cut precisely to the shape of your design, with no extra backing material around the edges. They're perfect for logos, characters, and custom shapes where you want the sticker to match your artwork exactly.
-                            <br><br>
-                            <strong>Kiss-cut stickers</strong> are cut through the vinyl layer but leave the backing paper intact in a square or rectangle shape. This makes them easier to peel and apply, and they're great for handouts, packaging inserts, and retail display.
+        <!-- FAQ Content -->
+        <section class="section">
+            <div class="container container--narrow">
+                <!-- Ordering -->
+                <div class="faq-category" id="ordering">
+                    <h2 class="faq-category__title">Ordering</h2>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Is there a minimum order?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>No minimums. Order 1 sticker or 100,000. However, pricing improves significantly at higher quantities - you'll see the best per-unit prices at 250+ stickers.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What's the difference between die-cut and kiss-cut?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p><strong>Die-cut</strong> stickers are cut precisely to the shape of your design. No backing visible - just your artwork. Best for logos and custom shapes.</p>
+                            <p><strong>Kiss-cut</strong> stickers keep a rectangular backing around your design. Easier to peel and great for handouts, packaging inserts, or selling.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Do you offer proofs before printing?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Yes. Every order gets a free digital proof via email showing exactly how your sticker will look. We won't print until you approve it. Need a physical sample? We can arrange that for a small fee.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Item 2 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>What file formats do you accept?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            We accept PNG, JPG, PDF, AI (Adobe Illustrator), EPS, and SVG files. For best results, we recommend:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li>Vector files (AI, EPS, SVG, PDF) for the sharpest print quality</li>
-                                <li>Raster images at 300 DPI or higher at your final print size</li>
-                                <li>CMYK color mode for accurate color reproduction</li>
-                                <li>Including a 1/16" bleed if your design goes to the edge</li>
-                            </ul>
-                            <br>
-                            If your file doesn't meet these requirements, don't worry! We'll reach out to work with you on getting the best possible result.
+                <!-- Artwork -->
+                <div class="faq-category" id="artwork">
+                    <h2 class="faq-category__title">Artwork</h2>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What file formats do you accept?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>We accept PNG, JPG, PDF, AI, EPS, and SVG files.</p>
+                            <p>For best results: vector files (AI, EPS, SVG) or raster images at 300 DPI minimum. If your file isn't perfect, we'll work with you to get the best result.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Can you help with design?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>We're printers, not designers - but we can help with minor adjustments like resizing, color correction, or adding bleed. For major design work, we recommend working with a designer first.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What about white ink?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Our white vinyl has a white base, so white areas in your design will print as white. For clear or holographic materials, we can print a white underbase to make colors pop. Just note this in your order.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Item 3 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>How long does production and shipping take?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            <strong>Standard production:</strong> 3-5 business days after artwork approval
-                            <br><br>
-                            <strong>Rush production:</strong> 1-2 business days (additional fee applies)
-                            <br><br>
-                            <strong>Shipping options:</strong>
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li>USPS First Class: 3-5 business days</li>
-                                <li>USPS Priority: 2-3 business days</li>
-                                <li>UPS Ground: 3-5 business days</li>
-                                <li>UPS 2-Day Air: 2 business days</li>
-                                <li>UPS Next Day Air: 1 business day</li>
-                            </ul>
-                            <br>
-                            You'll receive tracking information as soon as your order ships.
+                <!-- Materials -->
+                <div class="faq-category" id="materials-faq">
+                    <h2 class="faq-category__title">Materials</h2>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Are your stickers waterproof?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Yes. All our vinyl materials are waterproof, UV-resistant, and dishwasher safe. They're built for outdoor use and rated to last 3-5 years depending on the material.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What finishes are available?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p><strong>Gloss</strong> - Shiny, vibrant, most popular choice.</p>
+                            <p><strong>Matte</strong> - No shine, softer look, fingerprint resistant.</p>
+                            <p><strong>Satin</strong> - Subtle sheen between gloss and matte.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Which material should I choose?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p><strong>White vinyl</strong> - Best all-around choice. Crisp colors, very durable.</p>
+                            <p><strong>Clear</strong> - When you want the background to show through.</p>
+                            <p><strong>Holographic/Glitter/Mirror</strong> - When you want to stand out and get noticed.</p>
+                            <p><strong>Kraft</strong> - Natural, eco-friendly aesthetic.</p>
+                            <p>Not sure? <a href="materials.html">See all materials</a> or order samples.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Item 4 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>What material are your stickers made from?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            Our stickers are printed on premium white vinyl with a permanent adhesive backing. Key features include:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li><strong>Weatherproof:</strong> UV-resistant and waterproof for indoor or outdoor use</li>
-                                <li><strong>Durable:</strong> Scratch and fade resistant, lasting 3-5 years outdoors</li>
-                                <li><strong>Vibrant:</strong> Full-color printing with vivid, accurate colors</li>
-                                <li><strong>Finishes:</strong> Available in gloss, matte, or holographic</li>
-                            </ul>
-                            <br>
-                            Our stickers are dishwasher-safe and can withstand temperatures from -40°F to 176°F.
+                <!-- Shipping -->
+                <div class="faq-category" id="shipping">
+                    <h2 class="faq-category__title">Shipping & Turnaround</h2>
+
+                    <div class="faq-item" id="turnaround">
+                        <button class="faq-question" type="button">
+                            <span>How long does production take?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p><strong>Standard:</strong> 3-5 business days after proof approval.</p>
+                            <p><strong>Rush:</strong> 1-2 business days (fee applies).</p>
+                            <p><strong>Business accounts:</strong> 48-hour priority production included.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What shipping options are available?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>USPS First Class (3-5 days), USPS Priority (2-3 days), UPS Ground (3-5 days), UPS 2-Day, and UPS Next Day Air.</p>
+                            <p>Free shipping on orders over $75. Business accounts get free shipping on orders over $500.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Do you ship internationally?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Yes. We ship worldwide via USPS and UPS. International shipping rates and times vary by destination. Customs fees may apply and are the buyer's responsibility.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Item 5 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>Is there a minimum order quantity?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            No! We have no minimum order requirement. You can order as few as 1 sticker or as many as 10,000+.
-                            <br><br>
-                            However, our pricing is tiered based on quantity, so larger orders get better per-unit pricing:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li>1-49 stickers: Standard pricing</li>
-                                <li>50-99 stickers: ~20% discount</li>
-                                <li>100-249 stickers: ~40% discount</li>
-                                <li>250+ stickers: Best pricing available</li>
-                            </ul>
-                            <br>
-                            For orders over 1,000 stickers, contact us for custom bulk pricing.
+                <!-- Support -->
+                <div class="faq-category" id="support">
+                    <h2 class="faq-category__title">Support</h2>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>What if there's a problem with my order?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>We guarantee your satisfaction. If there's a print defect, shipping damage, or any quality issue - we'll reprint or refund. Contact us within 14 days of delivery with photos of the issue.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>Can I cancel or change my order?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Before proof approval: yes, no problem. After proof approval: contact us immediately. If we haven't started printing, we can usually accommodate changes. Once printing starts, changes aren't possible.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" type="button">
+                            <span>How do I contact you?</span>
+                            <span class="faq-icon"></span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>Email us at <a href="mailto:orders@12ozstickers.com">orders@12ozstickers.com</a>. We respond within 24 hours on business days, usually much faster.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- FAQ Item 6 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>Do you offer proofs before printing?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            Yes! Every order includes a free digital proof sent to your email before we print. You'll be able to review:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li>How your design will look as a sticker</li>
-                                <li>The cut line/shape of your sticker</li>
-                                <li>Final sizing and proportions</li>
-                                <li>Any adjustments we recommend</li>
-                            </ul>
-                            <br>
-                            We won't start production until you approve the proof. If you need physical proofs, we offer printed samples for an additional fee.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Item 7 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>Can I order custom sizes?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            We can produce stickers in virtually any size from 1" up to 12" in any dimension. Common custom sizes include:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li>Bumper stickers: 10" x 3" or 11.5" x 3"</li>
-                                <li>Laptop stickers: 4" x 3" or 5" x 4"</li>
-                                <li>Phone case stickers: 3" x 6"</li>
-                                <li>Window decals: up to 12" x 12"</li>
-                            </ul>
-                            <br>
-                            For custom sizes, select "Custom" in the size selector and enter your dimensions. Pricing is calculated based on total square inches.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FAQ Item 8 -->
-                <div class="faq-item">
-                    <button class="faq-question" type="button">
-                        <span>What's your return/refund policy?</span>
-                        <span class="faq-question__icon">+</span>
-                    </button>
-                    <div class="faq-answer">
-                        <div class="faq-answer__content">
-                            Since stickers are custom-printed to your specifications, we cannot accept returns on correctly fulfilled orders.
-                            <br><br>
-                            However, we guarantee your satisfaction. If there's an issue with your order:
-                            <ul style="margin-top: 0.75rem; margin-left: 1.5rem;">
-                                <li><strong>Print defects:</strong> We'll reprint or refund your order</li>
-                                <li><strong>Shipping damage:</strong> We'll replace damaged stickers</li>
-                                <li><strong>Color issues:</strong> We'll work with you to resolve any problems</li>
-                            </ul>
-                            <br>
-                            Contact us within 14 days of receiving your order if you have any concerns. We're committed to making things right.
-                        </div>
-                    </div>
+                <!-- Still have questions -->
+                <div class="faq-cta">
+                    <h3>Still have questions?</h3>
+                    <p>We're here to help. Reach out and we'll get back to you within 24 hours.</p>
+                    <a href="mailto:orders@12ozstickers.com" class="btn btn--primary">Contact Us</a>
                 </div>
             </div>
+        </section>
+    </main>
 
-            <!-- Contact CTA -->
-            <div class="card text-center fade-in-up stagger-2" style="margin-top: 3rem;">
-                <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Still have questions?</h3>
-                <p class="text-muted" style="margin-bottom: 1.5rem;">We're here to help. Reach out and we'll get back to you within 24 hours.</p>
-                <a href="mailto:stickers@12ozcollective.com" class="btn btn--primary">Contact Us</a>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__grid">
+                <div class="footer__brand">
+                    <a href="index.html" class="footer__logo">
+                        <span class="nav__logo-text">12oz</span>
+                        <span class="nav__logo-sub">STICKERS</span>
+                    </a>
+                    <p class="footer__tagline">Premium custom stickers from 12oz Collective</p>
+                </div>
+                <div class="footer__links">
+                    <h4>Products</h4>
+                    <a href="builder.html">Create Stickers</a>
+                    <a href="materials.html">Materials</a>
+                    <a href="builder.html?cut=die-cut">Die-Cut</a>
+                    <a href="builder.html?cut=kiss-cut">Kiss-Cut</a>
+                </div>
+                <div class="footer__links">
+                    <h4>Company</h4>
+                    <a href="business.html">For Business</a>
+                    <a href="faq.html">FAQ</a>
+                    <a href="mailto:orders@12ozstickers.com">Contact</a>
+                </div>
+                <div class="footer__links">
+                    <h4>Support</h4>
+                    <a href="faq.html#shipping">Shipping</a>
+                    <a href="faq.html#turnaround">Turnaround</a>
+                    <a href="faq.html#artwork">Artwork Help</a>
+                </div>
+            </div>
+            <div class="footer__bottom">
+                <p>&copy; 2025 12oz Collective. All rights reserved.</p>
             </div>
         </div>
+    </footer>
 
-        <!-- Footer -->
-        <footer class="page-footer" style="margin-top: 4rem;">
-            <img
-                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
-                alt="12ozCollective logo"
-                class="footer-logo"
-            />
-            <div class="footer-links">
-                <a href="index.html" class="footer-link">Home</a>
-                <a href="order.html" class="footer-link">Order</a>
-                <a href="https://12ozcollective.com" class="footer-link" target="_blank" rel="noopener">12ozCollective</a>
-            </div>
-            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.8rem;">&copy; 2025 12ozCollective. All rights reserved.</p>
-        </footer>
-    </div>
-
-    <!-- Cart Toggle -->
-    <button class="cart-toggle" id="cart-toggle" style="display: none;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1"/>
-            <circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-        </svg>
-        Cart
-        <span class="cart-toggle__count" id="cart-count">0</span>
-    </button>
-
-    <!-- Cart Overlay -->
-    <div class="cart-overlay" id="cart-overlay"></div>
-
-    <!-- Cart Drawer -->
-    <div class="cart-drawer" id="cart-drawer">
-        <div class="cart-drawer__header">
-            <h3 class="cart-drawer__title">Your Cart</h3>
-            <button class="cart-drawer__close" id="cart-close">&times;</button>
-        </div>
-        <div class="cart-drawer__content" id="cart-items">
-            <div class="cart-empty">
-                <div class="cart-empty__icon">🛒</div>
-                <p>Your cart is empty</p>
-            </div>
-        </div>
-        <div class="cart-drawer__footer">
-            <div class="cart-total">
-                <span class="cart-total__label">Total</span>
-                <span class="cart-total__amount" id="cart-total">$0.00</span>
-            </div>
-            <button class="btn btn--primary w-full" id="checkout-btn" disabled>Checkout</button>
-        </div>
-    </div>
-
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 </body>
 </html>
