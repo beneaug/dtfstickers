@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Order Stickers | 12oz Stickers</title>
+    <meta name="description" content="Order premium custom stickers. Upload your artwork, choose your size and finish, and get stickers delivered fast.">
+
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="bg-grain-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="nav nav--scrolled" id="nav">
+        <a href="index.html">
+            <img
+                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
+                alt="12ozCollective"
+                class="nav__logo"
+            />
+        </a>
+        <div class="nav__links">
+            <a href="order.html" class="nav__link nav__link--active">Order</a>
+            <a href="faq.html" class="nav__link">FAQ</a>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-content" style="padding-top: 100px;">
+        <div class="container container--narrow">
+            <!-- Page Header -->
+            <div class="text-center mb-lg fade-in-up">
+                <h1 class="section-title">Order Stickers</h1>
+                <p class="section-subtitle">Upload your artwork and customize your order.</p>
+            </div>
+
+            <!-- Sticker Type Tabs -->
+            <div class="text-center mb-lg fade-in-up stagger-1">
+                <div class="tabs" id="type-tabs">
+                    <button class="tab tab--active" data-type="die-cut">Die-Cut</button>
+                    <button class="tab" data-type="kiss-cut">Kiss-Cut</button>
+                    <button class="tab" data-type="sheet">Sheet</button>
+                </div>
+            </div>
+
+            <!-- Order Form Card -->
+            <div class="card fade-in-up stagger-2" id="order-form-card">
+                <form id="order-form">
+                    <!-- File Upload Section -->
+                    <div class="form-group">
+                        <label class="form-label">Upload Artwork</label>
+                        <div class="file-upload" id="file-upload">
+                            <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.pdf,.ai,.eps,.svg" style="display: none;">
+                            <div class="file-upload__icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <p class="file-upload__text">Drag and drop or click to upload</p>
+                            <p class="file-upload__hint">PNG, JPG, PDF, AI, EPS, or SVG. Max 50MB.</p>
+                        </div>
+                        <!-- File Preview (hidden by default) -->
+                        <div id="file-preview" style="display: none;">
+                            <div class="sticker-preview">
+                                <img id="preview-image" class="sticker-preview__image" src="" alt="Preview">
+                            </div>
+                            <div class="text-center">
+                                <button type="button" class="btn btn--ghost btn--small" id="remove-file">Remove File</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Size Selection -->
+                    <div class="form-group">
+                        <label class="form-label">Size</label>
+                        <div class="size-selector" id="size-selector">
+                            <div class="size-option" data-size="2x2" data-price="0.75">
+                                <div class="size-option__size">2" x 2"</div>
+                                <div class="size-option__price">From $0.35</div>
+                            </div>
+                            <div class="size-option size-option--selected" data-size="3x3" data-price="1.25">
+                                <div class="size-option__size">3" x 3"</div>
+                                <div class="size-option__price">From $0.65</div>
+                            </div>
+                            <div class="size-option" data-size="4x4" data-price="1.75">
+                                <div class="size-option__size">4" x 4"</div>
+                                <div class="size-option__price">From $0.95</div>
+                            </div>
+                            <div class="size-option" data-size="5x5" data-price="2.50">
+                                <div class="size-option__size">5" x 5"</div>
+                                <div class="size-option__price">From $1.35</div>
+                            </div>
+                            <div class="size-option" data-size="custom">
+                                <div class="size-option__size">Custom</div>
+                                <div class="size-option__price">Contact</div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Size Inputs (hidden by default) -->
+                        <div id="custom-size-inputs" style="display: none; margin-top: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label class="form-label" style="font-size: 0.75rem;">Width (inches)</label>
+                                    <input type="number" class="form-input" id="custom-width" placeholder="e.g. 3.5" min="1" max="12" step="0.25">
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size: 0.75rem;">Height (inches)</label>
+                                    <input type="number" class="form-input" id="custom-height" placeholder="e.g. 2.5" min="1" max="12" step="0.25">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Finish Selection -->
+                    <div class="form-group">
+                        <label class="form-label">Finish</label>
+                        <div class="finish-selector" id="finish-selector">
+                            <div class="finish-option finish-option--selected" data-finish="gloss">
+                                <div class="finish-option__name">Gloss</div>
+                                <div class="finish-option__desc">Shiny, vibrant colors</div>
+                            </div>
+                            <div class="finish-option" data-finish="matte">
+                                <div class="finish-option__name">Matte</div>
+                                <div class="finish-option__desc">No glare, elegant look</div>
+                            </div>
+                            <div class="finish-option" data-finish="holographic">
+                                <div class="finish-option__name">Holographic</div>
+                                <div class="finish-option__desc">Rainbow effect (+$0.25)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="form-group">
+                        <label class="form-label">Quantity</label>
+                        <div class="quantity-control">
+                            <button type="button" class="quantity-control__btn" id="qty-decrease">-</button>
+                            <input type="number" class="quantity-control__input" id="quantity" value="50" min="1" max="10000">
+                            <button type="button" class="quantity-control__btn" id="qty-increase">+</button>
+                        </div>
+                        <p class="text-muted" style="margin-top: 0.5rem; font-size: 0.8rem;">
+                            <span id="quantity-tier">50-99 qty: Best for small batches</span>
+                        </p>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Special Instructions (Optional)</label>
+                        <textarea class="form-textarea" id="notes" placeholder="Any special requests or instructions for your order..."></textarea>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        <div class="order-summary__row">
+                            <span class="order-summary__label">Type</span>
+                            <span class="order-summary__value" id="summary-type">Die-Cut</span>
+                        </div>
+                        <div class="order-summary__row">
+                            <span class="order-summary__label">Size</span>
+                            <span class="order-summary__value" id="summary-size">3" x 3"</span>
+                        </div>
+                        <div class="order-summary__row">
+                            <span class="order-summary__label">Finish</span>
+                            <span class="order-summary__value" id="summary-finish">Gloss</span>
+                        </div>
+                        <div class="order-summary__row">
+                            <span class="order-summary__label">Quantity</span>
+                            <span class="order-summary__value" id="summary-qty">50</span>
+                        </div>
+                        <div class="order-summary__row">
+                            <span class="order-summary__label">Unit Price</span>
+                            <span class="order-summary__value" id="summary-unit-price">$1.00</span>
+                        </div>
+                        <div class="order-summary__row order-summary__total">
+                            <span class="order-summary__label">Order Total</span>
+                            <span class="order-summary__value" id="summary-total">$50.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn btn--primary w-full" id="add-to-cart-btn">
+                            Add to Cart
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Info Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem;">
+                <div class="card fade-in-up stagger-3" style="padding: 1.25rem; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚚</div>
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem;">Fast Shipping</h4>
+                    <p class="text-muted" style="font-size: 0.8rem;">3-5 business days</p>
+                </div>
+                <div class="card fade-in-up stagger-4" style="padding: 1.25rem; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</div>
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem;">Premium Quality</h4>
+                    <p class="text-muted" style="font-size: 0.8rem;">Weatherproof vinyl</p>
+                </div>
+                <div class="card fade-in-up stagger-5" style="padding: 1.25rem; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💳</div>
+                    <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem;">Secure Payment</h4>
+                    <p class="text-muted" style="font-size: 0.8rem;">Powered by Stripe</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="page-footer" style="margin-top: 4rem;">
+            <img
+                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
+                alt="12ozCollective logo"
+                class="footer-logo"
+            />
+            <div class="footer-links">
+                <a href="index.html" class="footer-link">Home</a>
+                <a href="faq.html" class="footer-link">FAQ</a>
+                <a href="https://12ozcollective.com" class="footer-link" target="_blank" rel="noopener">12ozCollective</a>
+            </div>
+            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.8rem;">&copy; 2025 12ozCollective. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Cart Toggle -->
+    <button class="cart-toggle" id="cart-toggle" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        Cart
+        <span class="cart-toggle__count" id="cart-count">0</span>
+    </button>
+
+    <!-- Cart Overlay -->
+    <div class="cart-overlay" id="cart-overlay"></div>
+
+    <!-- Cart Drawer -->
+    <div class="cart-drawer" id="cart-drawer">
+        <div class="cart-drawer__header">
+            <h3 class="cart-drawer__title">Your Cart</h3>
+            <button class="cart-drawer__close" id="cart-close">&times;</button>
+        </div>
+        <div class="cart-drawer__content" id="cart-items">
+            <div class="cart-empty">
+                <div class="cart-empty__icon">🛒</div>
+                <p>Your cart is empty</p>
+            </div>
+        </div>
+        <div class="cart-drawer__footer">
+            <div class="cart-total">
+                <span class="cart-total__label">Total</span>
+                <span class="cart-total__amount" id="cart-total">$0.00</span>
+            </div>
+            <button class="btn btn--primary w-full" id="checkout-btn" disabled>Checkout</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+</body>
+</html>

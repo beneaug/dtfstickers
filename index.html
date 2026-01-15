@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>12ozsticke.rs</title>
+    <title>12oz Stickers | Premium Custom Stickers by 12ozCollective</title>
+    <meta name="description" content="Premium custom stickers from 12ozCollective. Die-cut, kiss-cut, and sheet stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
 
     <!-- Social cards -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="12ozsticke.rs">
+    <meta property="og:title" content="12oz Stickers | Premium Custom Stickers">
+    <meta property="og:description" content="Premium custom stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
     <meta property="og:image" content="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/IMG_3959.jpeg">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="12ozsticke.rs">
+    <meta name="twitter:title" content="12oz Stickers | Premium Custom Stickers">
+    <meta name="twitter:description" content="Premium custom stickers with vibrant colors and durable finishes. Fast turnaround, no minimums.">
     <meta name="twitter:image" content="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/IMG_3959.jpeg">
 
     <link rel="stylesheet" href="styles.css">
     <script src="video-loader.js" defer></script>
+    <script src="app.js" defer></script>
 </head>
 <body>
+    <!-- Background Videos -->
     <video class="bg-video bg-video-placeholder" autoplay loop muted playsinline>
         <source src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/ssss.mp4" type="video/mp4">
     </video>
@@ -24,22 +29,279 @@
         <source src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12osz3.mp4" type="video/mp4">
     </video>
     <div class="bg-grain-overlay"></div>
-    
     <div class="bg-gray-overlay"></div>
-    
-    <main class="content">
-        <div class="hero-container">
-            <h1 class="hero-text">You should be excited.</h1>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <a href="index.html">
+            <img
+                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
+                alt="12ozCollective"
+                class="nav__logo"
+            />
+        </a>
+        <div class="nav__links">
+            <a href="order.html" class="nav__link">Order</a>
+            <a href="faq.html" class="nav__link">FAQ</a>
         </div>
-    </main>
-    
-    <footer class="page-footer">
-        <img
-            src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
-            alt="12ozCollective logo"
-            class="footer-logo"
-        />
-    </footer>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        <!-- Hero Section -->
+        <section class="section--hero">
+            <h1 class="hero-title">Stickers that stick.</h1>
+            <p class="hero-subtitle">
+                Premium custom stickers from the team behind 12ozCollective.
+                Vibrant colors, durable finishes, fast turnaround. No minimums.
+            </p>
+            <div class="hero-actions" style="display: flex; gap: 1rem; margin-top: 2rem; opacity: 0; animation: fadeInUp 700ms var(--ease-smooth) 600ms forwards;">
+                <a href="order.html" class="btn btn--primary btn--large">Order Now</a>
+                <a href="#benefits" class="btn btn--outline btn--large">Learn More</a>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="section" id="benefits" style="background: var(--color-bg); position: relative; z-index: 5;">
+            <div class="container">
+                <div class="text-center mb-lg">
+                    <h2 class="section-title fade-in-up">Why 12oz Stickers?</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">The same quality obsession we bring to garment decoration, now for stickers.</p>
+                </div>
+
+                <div class="benefits">
+                    <div class="benefit fade-in-up stagger-2">
+                        <div class="benefit__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                        </div>
+                        <h3 class="benefit__title">Premium Quality</h3>
+                        <p class="benefit__desc">Vivid, fade-resistant inks on premium vinyl. Weatherproof and built to last outdoors or indoors.</p>
+                    </div>
+
+                    <div class="benefit fade-in-up stagger-3">
+                        <div class="benefit__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <h3 class="benefit__title">Fast Turnaround</h3>
+                        <p class="benefit__desc">Most orders ship within 3-5 business days. Rush options available for tight deadlines.</p>
+                    </div>
+
+                    <div class="benefit fade-in-up stagger-4">
+                        <div class="benefit__icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2v4"/>
+                                <path d="M12 18v4"/>
+                                <path d="M4.93 4.93l2.83 2.83"/>
+                                <path d="M16.24 16.24l2.83 2.83"/>
+                                <path d="M2 12h4"/>
+                                <path d="M18 12h4"/>
+                                <path d="M4.93 19.07l2.83-2.83"/>
+                                <path d="M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                        </div>
+                        <h3 class="benefit__title">No Minimums</h3>
+                        <p class="benefit__desc">Order as few or as many as you need. Perfect for testing designs or large-scale campaigns.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Types Section -->
+        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5;">
+            <div class="container">
+                <div class="text-center mb-lg">
+                    <h2 class="section-title fade-in-up">Sticker Types</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">Choose the perfect format for your project.</p>
+                </div>
+
+                <div class="product-grid">
+                    <!-- Die-Cut Stickers -->
+                    <div class="product-card card--interactive fade-in-up stagger-2">
+                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(255,122,24,0.1) 0%, rgba(255,179,71,0.05) 100%);">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/>
+                                <path d="M12 12l8-4.5"/>
+                                <path d="M12 12v9"/>
+                                <path d="M12 12L4 7.5"/>
+                            </svg>
+                        </div>
+                        <div class="product-card__content">
+                            <h3 class="product-card__title">Die-Cut Stickers</h3>
+                            <p class="product-card__price">Starting at <span>$0.50/ea</span></p>
+                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Cut precisely to the shape of your design. Perfect for logos, characters, and custom shapes.</p>
+                            <a href="order.html?type=die-cut" class="btn btn--secondary btn--small mt-lg">Order Die-Cut</a>
+                        </div>
+                    </div>
+
+                    <!-- Kiss-Cut Stickers -->
+                    <div class="product-card card--interactive fade-in-up stagger-3">
+                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(158,247,197,0.1) 0%, rgba(158,247,197,0.02) 100%);">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M8 8h8v8H8z"/>
+                            </svg>
+                        </div>
+                        <div class="product-card__content">
+                            <h3 class="product-card__title">Kiss-Cut Stickers</h3>
+                            <p class="product-card__price">Starting at <span>$0.35/ea</span></p>
+                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Easy peel-and-stick on a square backing. Great for handouts, packaging, and retail.</p>
+                            <a href="order.html?type=kiss-cut" class="btn btn--secondary btn--small mt-lg">Order Kiss-Cut</a>
+                        </div>
+                    </div>
+
+                    <!-- Sticker Sheets -->
+                    <div class="product-card card--interactive fade-in-up stagger-4">
+                        <div class="product-card__image" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(255,211,130,0.1) 0%, rgba(255,211,130,0.02) 100%);">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8" cy="8" r="2"/>
+                                <circle cx="16" cy="8" r="2"/>
+                                <circle cx="8" cy="16" r="2"/>
+                                <circle cx="16" cy="16" r="2"/>
+                            </svg>
+                        </div>
+                        <div class="product-card__content">
+                            <h3 class="product-card__title">Sticker Sheets</h3>
+                            <p class="product-card__price">Starting at <span>$2.50/sheet</span></p>
+                            <p class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">Multiple designs on one sheet. Perfect for variety packs, collectibles, and merch bundles.</p>
+                            <a href="order.html?type=sheet" class="btn btn--secondary btn--small mt-lg">Order Sheets</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5;">
+            <div class="container container--narrow">
+                <div class="text-center mb-lg">
+                    <h2 class="section-title fade-in-up">Simple Pricing</h2>
+                    <p class="section-subtitle fade-in-up stagger-1">Volume discounts on all orders. The more you order, the more you save.</p>
+                </div>
+
+                <div class="card fade-in-up stagger-2" style="overflow-x: auto;">
+                    <table class="pricing-table">
+                        <thead>
+                            <tr>
+                                <th>Size</th>
+                                <th>1-49</th>
+                                <th>50-99</th>
+                                <th>100-249</th>
+                                <th>250+</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>2" x 2"</td>
+                                <td>$0.75</td>
+                                <td>$0.60</td>
+                                <td>$0.45</td>
+                                <td>$0.35</td>
+                            </tr>
+                            <tr>
+                                <td>3" x 3"</td>
+                                <td>$1.25</td>
+                                <td>$1.00</td>
+                                <td>$0.80</td>
+                                <td>$0.65</td>
+                            </tr>
+                            <tr>
+                                <td>4" x 4"</td>
+                                <td>$1.75</td>
+                                <td>$1.40</td>
+                                <td>$1.15</td>
+                                <td>$0.95</td>
+                            </tr>
+                            <tr>
+                                <td>5" x 5"</td>
+                                <td>$2.50</td>
+                                <td>$2.00</td>
+                                <td>$1.65</td>
+                                <td>$1.35</td>
+                            </tr>
+                            <tr class="pricing-table__highlight">
+                                <td>Custom Size</td>
+                                <td colspan="4" style="text-align: center;">Contact for quote</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted text-center" style="margin-top: 1rem; font-size: 0.85rem;">Die-cut pricing shown. Kiss-cut and sheet pricing may vary. All prices in USD.</p>
+                </div>
+
+                <div class="text-center" style="margin-top: 2rem;">
+                    <a href="order.html" class="btn btn--primary btn--large fade-in-up stagger-3">Get Started</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="section" style="background: var(--color-bg); position: relative; z-index: 5; padding-bottom: 6rem;">
+            <div class="container container--content text-center">
+                <h2 class="section-title fade-in-up">Ready to stick it?</h2>
+                <p class="section-subtitle fade-in-up stagger-1" style="margin-bottom: 2rem;">Upload your artwork and get premium stickers delivered to your door.</p>
+                <div class="flex justify-center gap-md fade-in-up stagger-2">
+                    <a href="order.html" class="btn btn--primary btn--large">Start Your Order</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="page-footer" style="background: var(--color-bg); position: relative; z-index: 5;">
+            <img
+                src="https://raw.githubusercontent.com/beneaug/embroideryestimator/refs/heads/main/12ozcollective-logo-Bx1lkEfX.png"
+                alt="12ozCollective logo"
+                class="footer-logo"
+            />
+            <div class="footer-links">
+                <a href="order.html" class="footer-link">Order</a>
+                <a href="faq.html" class="footer-link">FAQ</a>
+                <a href="https://12ozcollective.com" class="footer-link" target="_blank" rel="noopener">12ozCollective</a>
+            </div>
+            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.8rem;">&copy; 2025 12ozCollective. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Cart Toggle (Hidden until items added) -->
+    <button class="cart-toggle" id="cart-toggle" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/>
+            <circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        Cart
+        <span class="cart-toggle__count" id="cart-count">0</span>
+    </button>
+
+    <!-- Cart Overlay -->
+    <div class="cart-overlay" id="cart-overlay"></div>
+
+    <!-- Cart Drawer -->
+    <div class="cart-drawer" id="cart-drawer">
+        <div class="cart-drawer__header">
+            <h3 class="cart-drawer__title">Your Cart</h3>
+            <button class="cart-drawer__close" id="cart-close">&times;</button>
+        </div>
+        <div class="cart-drawer__content" id="cart-items">
+            <div class="cart-empty">
+                <div class="cart-empty__icon">🛒</div>
+                <p>Your cart is empty</p>
+            </div>
+        </div>
+        <div class="cart-drawer__footer">
+            <div class="cart-total">
+                <span class="cart-total__label">Total</span>
+                <span class="cart-total__amount" id="cart-total">$0.00</span>
+            </div>
+            <button class="btn btn--primary w-full" id="checkout-btn" disabled>Checkout</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 </body>
 </html>
-
