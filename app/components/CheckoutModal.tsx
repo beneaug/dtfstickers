@@ -62,26 +62,23 @@ export function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/65 p-3 backdrop-blur-sm sm:items-center sm:justify-center">
-      <div className="glass-panel w-full max-w-lg rounded-[28px] border-white/20 p-5 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/72 p-3 backdrop-blur-sm sm:items-center sm:justify-center">
+      <div className="surface w-full max-w-lg rounded-3xl p-5 sm:p-6">
         {status === "complete" ? (
           <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.22em] text-orange-200">Order confirmed</p>
-            <h3 className="text-3xl font-semibold">You&apos;re all set.</h3>
-            <div className="rounded-2xl border border-white/20 bg-black/20 p-4 text-sm text-muted">
-              <p className="mb-1 text-white">{itemSummary}</p>
-              <p className="mb-1">Order: {orderId}</p>
-              <p>Total paid: {total}</p>
-              <p className="mt-2">Confirmation sent to {form.email}</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Order confirmed</p>
+            <h3 className="text-3xl font-semibold">You&apos;re set.</h3>
+            <div className="surface-soft rounded-2xl p-4 text-sm text-muted">
+              <p className="mb-1 text-white/95">{itemSummary}</p>
+              <p className="mb-1">Order ID: {orderId}</p>
+              <p>Paid: {total}</p>
+              <p className="mt-2">Receipt sent to {form.email}</p>
             </div>
-            <p className="text-sm text-muted">
-              Mock checkout complete. In production this form would hand off to Stripe and a
-              backend order pipeline.
-            </p>
+            <p className="text-sm text-muted">Mock checkout complete.</p>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-full bg-ember px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42]"
+              className="w-full rounded-full border border-[#ff935f] bg-ember px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42]"
             >
               Done
             </button>
@@ -90,20 +87,20 @@ export function CheckoutModal({
           <form className="space-y-4" onSubmit={submitCheckout}>
             <div className="mb-1 flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-orange-200">Checkout</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Checkout</p>
                 <h3 className="text-2xl font-semibold">Almost there</h3>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-white/30 px-3 py-1 text-xs uppercase tracking-[0.14em] text-muted transition hover:border-white/50 hover:text-white"
+                className="rounded-full border border-white/24 px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-muted transition hover:border-white/45 hover:text-white"
               >
                 Close
               </button>
             </div>
 
-            <div className="rounded-2xl border border-white/20 bg-black/20 p-4 text-sm text-muted">
-              <p className="text-white">{itemSummary}</p>
+            <div className="surface-soft rounded-2xl p-4 text-sm text-muted">
+              <p className="text-white/95">{itemSummary}</p>
               <p className="mt-1">Total due today: {total}</p>
             </div>
 
@@ -114,7 +111,7 @@ export function CheckoutModal({
                 required
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
               />
             </label>
 
@@ -127,7 +124,7 @@ export function CheckoutModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, fullName: event.target.value }))
                 }
-                className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
               />
             </label>
 
@@ -138,7 +135,7 @@ export function CheckoutModal({
                 required
                 value={form.address}
                 onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
               />
             </label>
 
@@ -152,7 +149,7 @@ export function CheckoutModal({
                   onChange={(event) =>
                     setForm((current) => ({ ...current, city: event.target.value }))
                   }
-                  className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
                 />
               </label>
 
@@ -165,7 +162,7 @@ export function CheckoutModal({
                   onChange={(event) =>
                     setForm((current) => ({ ...current, state: event.target.value }))
                   }
-                  className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
                 />
               </label>
 
@@ -176,7 +173,7 @@ export function CheckoutModal({
                   required
                   value={form.zip}
                   onChange={(event) => setForm((current) => ({ ...current, zip: event.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-white outline-none transition focus:border-ember"
+                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
                 />
               </label>
             </div>
@@ -184,7 +181,7 @@ export function CheckoutModal({
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="w-full rounded-full bg-ember px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-full border border-[#ff935f] bg-ember px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status === "submitting" ? "Placing order..." : "Place order"}
             </button>

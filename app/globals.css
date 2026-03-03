@@ -3,10 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --bg: 14 21 27;
-  --bg-soft: 24 35 45;
-  --text: 241 236 227;
-  --muted: 203 196 183;
+  --bg: 9 11 14;
+  --panel: 16 20 24;
+  --text: 241 243 245;
+  --muted: 157 166 175;
+  --line: 255 255 255;
   --accent: 247 107 42;
 }
 
@@ -26,15 +27,27 @@ body {
   font-family: var(--font-sans), sans-serif;
   background-color: rgb(var(--bg));
   background-image:
-    radial-gradient(120% 90% at 20% 0%, rgba(247, 107, 42, 0.2), transparent 60%),
-    radial-gradient(120% 110% at 100% 100%, rgba(58, 96, 121, 0.25), transparent 58%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+    radial-gradient(130% 110% at 12% -6%, rgba(247, 107, 42, 0.14), transparent 52%),
+    radial-gradient(120% 120% at 100% 100%, rgba(70, 82, 95, 0.18), transparent 56%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  position: relative;
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-display), serif;
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.16;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 0.42px, transparent 0.42px);
+  background-size: 2.5px 2.5px;
+  mix-blend-mode: soft-light;
+  z-index: 1;
+}
+
+main {
+  position: relative;
+  z-index: 2;
 }
 
 ::selection {
@@ -46,18 +59,22 @@ h3 {
   color: rgb(var(--muted));
 }
 
-.glass-panel {
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.08),
-    rgba(255, 255, 255, 0.025)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(14px);
+.surface {
+  background: linear-gradient(165deg, rgba(var(--panel), 0.86), rgba(var(--panel), 0.58));
+  border: 1px solid rgba(var(--line), 0.14);
+  backdrop-filter: blur(8px);
 }
 
-.grid-noise {
-  background-size: 24px 24px;
-  background-position: -1px -1px;
+.surface-soft {
+  background: rgba(var(--panel), 0.42);
+  border: 1px solid rgba(var(--line), 0.1);
 }
 
+.ghost-link {
+  color: rgb(var(--muted));
+  transition: color 0.16s ease;
+}
+
+.ghost-link:hover {
+  color: rgb(var(--text));
+}

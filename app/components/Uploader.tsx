@@ -37,16 +37,16 @@ export function Uploader({
         type="button"
         onClick={() => inputRef.current?.click()}
         className={[
-          "rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] transition active:scale-[0.98]",
+          "rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] transition active:scale-[0.98]",
           subtle
-            ? "border border-white/30 bg-white/8 text-white hover:bg-white/14"
-            : "bg-ember text-white shadow-[0_14px_30px_rgba(247,107,42,0.35)] hover:bg-[#ff7b42]",
+            ? "border border-white/28 bg-white/[0.02] text-white hover:border-white/45 hover:bg-white/[0.06]"
+            : "border border-[#ff935f] bg-ember text-white shadow-[0_10px_24px_rgba(247,107,42,0.3)] hover:bg-[#ff7b42]",
         ].join(" ")}
       >
         {label}
       </button>
       {!subtle ? (
-        <p className="text-sm text-muted">
+        <p className="text-xs uppercase tracking-[0.08em] text-muted">
           PNG, JPG, HEIC. Your image stays private until checkout.
         </p>
       ) : null}
