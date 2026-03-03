@@ -3,15 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --bg: 9 11 14;
-  --panel: 16 20 24;
-  --text: 241 243 245;
-  --muted: 157 166 175;
-  --line: 255 255 255;
-  --accent: 247 107 42;
+  --bg: #ffffff;
+  --bg-soft: #f6f7f9;
+  --line: #e6e5e5;
+  --text: #171717;
+  --muted: rgba(23, 23, 23, 0.58);
+  --accent: #ff6a2d;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -23,13 +25,11 @@ body {
 }
 
 body {
-  color: rgb(var(--text));
-  font-family: var(--font-sans), sans-serif;
-  background-color: rgb(var(--bg));
-  background-image:
-    radial-gradient(130% 110% at 12% -6%, rgba(247, 107, 42, 0.14), transparent 52%),
-    radial-gradient(120% 120% at 100% 100%, rgba(70, 82, 95, 0.18), transparent 56%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-sans), ui-rounded, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   position: relative;
 }
 
@@ -37,11 +37,24 @@ body::before {
   content: "";
   pointer-events: none;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9rem;
   opacity: 0.16;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 0.42px, transparent 0.42px);
-  background-size: 2.5px 2.5px;
-  mix-blend-mode: soft-light;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    #ff2b3a,
+    #ec34f7 14%,
+    #5946f9 26%,
+    #0082ff 36%,
+    #00beca 52%,
+    #00ca48 66%,
+    #f4b000 80%,
+    #ff6800 90%,
+    #ff2d5e
+  );
   z-index: 1;
 }
 
@@ -51,30 +64,33 @@ main {
 }
 
 ::selection {
-  background: rgba(247, 107, 42, 0.35);
-  color: rgb(var(--text));
+  color: #fff;
+  background: #1a88f8;
 }
 
 .text-muted {
-  color: rgb(var(--muted));
+  color: var(--muted);
 }
 
-.surface {
-  background: linear-gradient(165deg, rgba(var(--panel), 0.86), rgba(var(--panel), 0.58));
-  border: 1px solid rgba(var(--line), 0.14);
-  backdrop-filter: blur(8px);
+.panel {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.04);
 }
 
-.surface-soft {
-  background: rgba(var(--panel), 0.42);
-  border: 1px solid rgba(var(--line), 0.1);
+.panel-soft {
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 1rem;
 }
 
 .ghost-link {
-  color: rgb(var(--muted));
-  transition: color 0.16s ease;
+  color: var(--muted);
+  transition: color 120ms ease;
 }
 
 .ghost-link:hover {
-  color: rgb(var(--text));
+  color: var(--text);
 }
+

@@ -18,18 +18,16 @@ interface StickerPeelPreviewProps {
   onSnap?: () => void;
 }
 
-type XY = { x: number; y: number };
+type Position = { x: number; y: number };
 
-const REST_PEEL = 12;
-const ACTIVE_PEEL = 24;
-const MAX_PEEL = 82;
-const SNAP_THRESHOLD = 46;
+const REST_PEEL = 0.1;
+const ACTIVE_PEEL = 0.2;
+const SNAP_THRESHOLD = 0.56;
 
 export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps) {
   const [peel, setPeel] = useState(REST_PEEL);
-  const [dragOffset, setDragOffset] = useState<XY>({ x: 0, y: 0 });
-  const [rotation, setRotation] = useState<XY>({ x: 0, y: 0 });
-  const [light, setLight] = useState({ x: 35, y: 35, z: 78 });
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const [light, setLight] = useState({ x: 40, y: 40, z: 68 });
   const [isActive, setIsActive] = useState(false);
 
   const stickerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +35,7 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
   const peelRef = useRef(peel);
   const firstPeelTriggeredRef = useRef(false);
   const lastMicroPatternAtRef = useRef(0);
-  const dragStateRef = useRef<{
+  const dragRef = useRef<{
     startX: number;
     startY: number;
     originX: number;
@@ -51,33 +49,28 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
     peelRef.current = peel;
   }, [peel]);
 
-  const runHaptic = useCallback(
+  const safeHaptic = useCallback(
     (pattern: string | number[]) => {
       if (!isSupported) return;
       try {
         trigger(pattern as never);
       } catch {
-        // No-op when unavailable.
+        // Unsupported clients should fail silently.
       }
     },
     [isSupported, trigger],
   );
 
-  const updateVisualFromPointer = useCallback((clientX: number, clientY: number) => {
+  const updateLightFromPointer = useCallback((clientX: number, clientY: number) => {
     const rect = stickerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const px = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
-    const py = clamp(((clientY - rect.top) / rect.height) * 100, 0, 100);
-
-    const rotationX = (py - 50) / 10;
-    const rotationY = (px - 50) / 10;
-
-    setRotation({ x: rotationX, y: rotationY });
+    const x = clamp(((clientX - rect.left) / rect.width) * 100, -10, 110);
+    const y = clamp(((clientY - rect.top) / rect.height) * 100, -10, 110);
     setLight({
-      x: clamp(px + 30 * rotationY, -20, 130),
-      y: clamp(py + 60 * (rotationX + 1), -20, 140),
-      z: 80,
+      x,
+      y,
+      z: 68,
     });
   }, []);
 
@@ -85,51 +78,52 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
     activePointerIdRef.current = event.pointerId;
-    dragStateRef.current = {
+    dragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
-      originX: dragOffset.x,
-      originY: dragOffset.y,
+      originX: position.x,
+      originY: position.y,
     };
+
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsActive(true);
     setPeel((current) => Math.max(current, ACTIVE_PEEL));
-    updateVisualFromPointer(event.clientX, event.clientY);
+    updateLightFromPointer(event.clientX, event.clientY);
 
     if (!firstPeelTriggeredRef.current) {
       firstPeelTriggeredRef.current = true;
-      runHaptic("nudge");
+      safeHaptic("nudge");
     }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    updateVisualFromPointer(event.clientX, event.clientY);
+    updateLightFromPointer(event.clientX, event.clientY);
 
-    if (activePointerIdRef.current !== event.pointerId || !dragStateRef.current) return;
+    if (activePointerIdRef.current !== event.pointerId || !dragRef.current) return;
 
     event.preventDefault();
+    const dx = event.clientX - dragRef.current.startX;
+    const dy = event.clientY - dragRef.current.startY;
 
-    const dx = event.clientX - dragStateRef.current.startX;
-    const dy = event.clientY - dragStateRef.current.startY;
-
-    setDragOffset({
-      x: dragStateRef.current.originX + dx,
-      y: dragStateRef.current.originY + dy,
+    setPosition({
+      x: dragRef.current.originX + dx,
+      y: dragRef.current.originY + dy,
     });
 
-    const lift = clamp(-dy * 0.26, 0, MAX_PEEL - REST_PEEL);
-    const lateralPull = clamp(Math.abs(dx) * 0.045, 0, 6);
-    const nextPeel = clamp(REST_PEEL + lift + lateralPull, REST_PEEL, MAX_PEEL);
-
     setPeel((current) => {
-      if (nextPeel > current + 2.1) {
+      const lift = clamp(-dy / 180, 0, 1);
+      const tension = clamp(Math.abs(dx) / 360, 0, 0.18);
+      const next = clamp(REST_PEEL + lift + tension, REST_PEEL, 1);
+
+      if (next > current + 0.018) {
         const now = performance.now();
-        if (now - lastMicroPatternAtRef.current > 155) {
-          runHaptic([5, 24, 4]);
+        if (now - lastMicroPatternAtRef.current > 150) {
+          // Custom micro-pattern during peel increase.
+          safeHaptic([6, 26, 5]);
           lastMicroPatternAtRef.current = now;
         }
       }
-      return nextPeel;
+      return next;
     });
   };
 
@@ -141,16 +135,15 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
     }
 
     activePointerIdRef.current = null;
-    dragStateRef.current = null;
+    dragRef.current = null;
     setIsActive(false);
 
     if (peelRef.current > SNAP_THRESHOLD) {
-      runHaptic("success");
+      safeHaptic("success");
       onSnap?.();
     }
 
-    setPeel(REST_PEEL + 2);
-    setRotation({ x: 0, y: 0 });
+    setPeel(REST_PEEL + 0.04);
   };
 
   const imageStyle = useMemo(
@@ -158,51 +151,55 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
       ({
         backgroundImage: `url("${imageUrl}")`,
         backgroundPosition: "center",
-        backgroundSize: "cover",
         backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
       }) satisfies CSSProperties,
     [imageUrl],
   );
 
-  const stickyHeight = clamp(100 - peel, 15, 94);
-  const stickerClipPath = `polygon(0 ${stickyHeight}%, ${stickyHeight}% 100%, 100% 100%, 100% 0, 0 0)`;
-  const flapClipPath = `polygon(0 ${stickyHeight}%, ${stickyHeight}% 100%, 100% ${stickyHeight}%)`;
-  const flapOpacity = clamp((peel - 10) / 45, 0, 1);
+  const peelCut = clamp(6 + peel * 34, 6, 42);
+  const foldAngle = peel * 108;
+  const flapLift = peel * 18;
+  const flapShiftX = peel * 4;
+  const flapOpacity = clamp(peel * 1.35, 0, 1);
+
+  const stickerClip = `polygon(0 0, ${100 - peelCut}% 0, 100% ${peelCut}%, 100% 100%, 0 100%)`;
+  const flapClip = `polygon(${100 - peelCut}% 0, 100% ${peelCut}%, 100% 0)`;
 
   const rawId = useId().replaceAll(":", "");
-  const stickerFilterId = `sticker-light-${rawId}`;
-  const flapFilterId = `flap-light-${rawId}`;
+  const mainFilterId = `sticker-main-light-${rawId}`;
+  const flapFilterId = `sticker-flap-light-${rawId}`;
 
   return (
-    <div className="surface relative h-[400px] w-full overflow-hidden rounded-3xl p-4 sm:h-[470px] sm:p-5">
+    <div className="panel relative h-[420px] w-full overflow-hidden p-4 sm:h-[480px] sm:p-5">
       <svg aria-hidden className="absolute h-0 w-0">
         <defs>
-          <filter id={stickerFilterId} x="-40%" y="-40%" width="180%" height="180%">
+          <filter id={mainFilterId} x="-35%" y="-35%" width="170%" height="170%">
             <feSpecularLighting
               in="SourceGraphic"
               surfaceScale="5"
               specularConstant="1"
-              specularExponent="32"
+              specularExponent="28"
               lightingColor="white"
-              result="specular"
+              result="specOut"
             >
               <fePointLight x={light.x} y={light.y} z={light.z} />
             </feSpecularLighting>
-            <feComposite in="specular" in2="SourceGraphic" operator="arithmetic" k1={0} k2={1} k3={1} k4={0} />
+            <feComposite in="specOut" in2="SourceGraphic" operator="arithmetic" k1={0} k2={1} k3={1} k4={0} />
           </filter>
 
-          <filter id={flapFilterId} x="-40%" y="-40%" width="180%" height="180%">
+          <filter id={flapFilterId} x="-35%" y="-35%" width="170%" height="170%">
             <feSpecularLighting
               in="SourceGraphic"
               surfaceScale="5"
               specularConstant="1"
-              specularExponent="32"
+              specularExponent="30"
               lightingColor="white"
-              result="specular"
+              result="specOut"
             >
-              <fePointLight x={light.x} y={light.y} z={light.z * 1.12} />
+              <fePointLight x={light.x} y={light.y} z={light.z * 1.2} />
             </feSpecularLighting>
-            <feComposite in="specular" in2="SourceGraphic" operator="arithmetic" k1={0} k2={1} k3={1} k4={0} />
+            <feComposite in="specOut" in2="SourceGraphic" operator="arithmetic" k1={0} k2={1} k3={1} k4={0} />
           </filter>
         </defs>
       </svg>
@@ -216,63 +213,73 @@ export function StickerPeelPreview({ imageUrl, onSnap }: StickerPeelPreviewProps
         <div
           className="absolute left-1/2 top-1/2"
           style={{
-            transform: `translate(calc(-50% + ${dragOffset.x}px), calc(-50% + ${dragOffset.y}px))`,
-            perspective: "960px",
+            transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
           }}
         >
           <div
-            className="pointer-events-none absolute left-8 right-8 top-[calc(100%+4px)] h-8 rounded-full bg-black/55 blur-xl transition"
+            className="pointer-events-none absolute left-8 right-8 top-[calc(100%+8px)] h-8 rounded-full bg-black/20 blur-xl transition"
             style={{
-              transform: `translateY(${clamp(peel * 0.05, 0, 8)}px) scale(${1 + peel * 0.0025})`,
-              opacity: clamp(0.36 + peel / 170, 0.36, 0.86),
+              opacity: clamp(0.22 + peel * 0.25, 0.2, 0.55),
+              transform: `scale(${1 + peel * 0.035})`,
             }}
           />
 
           <div
             ref={stickerRef}
-            onPointerDown={handlePointerDown}
-            className="relative h-[250px] w-[250px] rounded-[28px] border border-white/55 bg-white/88 shadow-[0_20px_48px_rgba(0,0,0,0.45)] sm:h-[320px] sm:w-[320px]"
+            className="relative h-[250px] w-[250px] rounded-[30px] border border-[#d9d9d9] bg-white shadow-[0_24px_55px_rgba(0,0,0,0.16)] sm:h-[320px] sm:w-[320px]"
             style={{
-              transform: `rotateX(${rotation.x}deg) rotateY(${-rotation.y}deg)`,
-              transition: isActive ? "none" : "transform 360ms cubic-bezier(0.2,0.75,0.3,1)",
+              perspective: "1000px",
+              transformStyle: "preserve-3d",
             }}
+            onPointerDown={handlePointerDown}
           >
             <div
-              className="absolute inset-0 rounded-[27px]"
+              className="absolute inset-0 rounded-[29px]"
               style={{
                 ...imageStyle,
-                clipPath: stickerClipPath,
-                filter: `url(#${stickerFilterId})`,
+                clipPath: stickerClip,
+                filter: `url(#${mainFilterId})`,
                 transition: isActive
                   ? "none"
-                  : "clip-path 360ms cubic-bezier(0.2,0.75,0.3,1), transform 360ms cubic-bezier(0.2,0.75,0.3,1)",
+                  : "clip-path 360ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1)",
               }}
             />
 
             <div
-              className="absolute inset-0 rounded-[27px]"
+              className="absolute inset-0 rounded-[29px]"
               style={{
-                ...imageStyle,
-                clipPath: flapClipPath,
-                transform: `translateY(-${peel * 0.76}%) scaleY(-1)`,
-                transformOrigin: "50% 0%",
+                clipPath: flapClip,
+                transformOrigin: "100% 0%",
+                transform: `translate3d(${flapShiftX}px, -${flapLift}px, ${peel * 22}px) rotate3d(1, -1, 0, ${foldAngle}deg)`,
                 opacity: flapOpacity,
-                filter: `url(#${flapFilterId})`,
                 transition: isActive
                   ? "none"
-                  : "clip-path 360ms cubic-bezier(0.2,0.75,0.3,1), transform 360ms cubic-bezier(0.2,0.75,0.3,1), opacity 320ms ease",
+                  : "clip-path 360ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 280ms ease",
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/75 to-white/18 mix-blend-screen" />
+              <div
+                className="absolute inset-0 rounded-[29px]"
+                style={{
+                  ...imageStyle,
+                  clipPath: flapClip,
+                  transform: "scaleY(-1)",
+                  transformOrigin: "50% 50%",
+                  filter: `url(#${flapFilterId})`,
+                }}
+              />
+              <div
+                className="absolute inset-0 rounded-[29px] bg-gradient-to-br from-[#fff9f0] via-white/40 to-[#efece8]"
+                style={{ clipPath: flapClip, mixBlendMode: "screen", opacity: 0.56 }}
+              />
             </div>
 
-            <div className="pointer-events-none absolute inset-0 rounded-[27px] ring-1 ring-black/8" />
+            <div className="pointer-events-none absolute inset-0 rounded-[29px] ring-1 ring-black/5" />
           </div>
         </div>
       </div>
 
       <p className="absolute bottom-3 left-0 w-full text-center text-[11px] uppercase tracking-[0.08em] text-muted">
-        Drag to position. Pull up to peel.
+        Drag to position. Pull upward to peel.
       </p>
     </div>
   );

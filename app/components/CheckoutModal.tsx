@@ -56,51 +56,53 @@ export function CheckoutModal({
   const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("submitting");
-    await new Promise((resolve) => setTimeout(resolve, 950));
+    await new Promise((resolve) => setTimeout(resolve, 900));
     setStatus("complete");
     onComplete(form);
   };
 
+  const inputClassName =
+    "mt-1 w-full rounded-xl border border-[#dfdfdf] bg-white px-3 py-2 text-[#171717] outline-none transition focus:border-[#b7b7b7]";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/72 p-3 backdrop-blur-sm sm:items-center sm:justify-center">
-      <div className="surface w-full max-w-lg rounded-3xl p-5 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 backdrop-blur-sm sm:items-center sm:justify-center">
+      <div className="panel w-full max-w-lg p-5 sm:p-6">
         {status === "complete" ? (
-          <div className="space-y-5">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Order confirmed</p>
-            <h3 className="text-3xl font-semibold">You&apos;re set.</h3>
-            <div className="surface-soft rounded-2xl p-4 text-sm text-muted">
-              <p className="mb-1 text-white/95">{itemSummary}</p>
+          <div className="space-y-4">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Order confirmed</p>
+            <h3 className="text-3xl font-semibold text-[#171717]">You&apos;re set.</h3>
+            <div className="panel-soft p-4 text-sm text-muted">
+              <p className="mb-1 text-[#171717]">{itemSummary}</p>
               <p className="mb-1">Order ID: {orderId}</p>
-              <p>Paid: {total}</p>
-              <p className="mt-2">Receipt sent to {form.email}</p>
+              <p>Total paid: {total}</p>
+              <p className="mt-2">Confirmation sent to {form.email}</p>
             </div>
-            <p className="text-sm text-muted">Mock checkout complete.</p>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-full border border-[#ff935f] bg-ember px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42]"
+              className="w-full rounded-full border border-[#ff935f] bg-[#ff6a2d] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#ff7a42]"
             >
               Done
             </button>
           </div>
         ) : (
-          <form className="space-y-4" onSubmit={submitCheckout}>
+          <form className="space-y-3.5" onSubmit={submitCheckout}>
             <div className="mb-1 flex items-center justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Checkout</p>
-                <h3 className="text-2xl font-semibold">Almost there</h3>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Checkout</p>
+                <h3 className="text-2xl font-semibold text-[#171717]">Almost there</h3>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-white/24 px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-muted transition hover:border-white/45 hover:text-white"
+                className="rounded-full border border-[#dfdfdf] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-muted transition hover:text-[#171717]"
               >
                 Close
               </button>
             </div>
 
-            <div className="surface-soft rounded-2xl p-4 text-sm text-muted">
-              <p className="text-white/95">{itemSummary}</p>
+            <div className="panel-soft p-4 text-sm text-muted">
+              <p className="text-[#171717]">{itemSummary}</p>
               <p className="mt-1">Total due today: {total}</p>
             </div>
 
@@ -111,7 +113,7 @@ export function CheckoutModal({
                 required
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                className={inputClassName}
               />
             </label>
 
@@ -124,7 +126,7 @@ export function CheckoutModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, fullName: event.target.value }))
                 }
-                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                className={inputClassName}
               />
             </label>
 
@@ -135,7 +137,7 @@ export function CheckoutModal({
                 required
                 value={form.address}
                 onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                className={inputClassName}
               />
             </label>
 
@@ -146,10 +148,8 @@ export function CheckoutModal({
                   type="text"
                   required
                   value={form.city}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, city: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                  onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
+                  className={inputClassName}
                 />
               </label>
 
@@ -159,10 +159,8 @@ export function CheckoutModal({
                   type="text"
                   required
                   value={form.state}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, state: event.target.value }))
-                  }
-                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                  onChange={(event) => setForm((current) => ({ ...current, state: event.target.value }))}
+                  className={inputClassName}
                 />
               </label>
 
@@ -173,7 +171,7 @@ export function CheckoutModal({
                   required
                   value={form.zip}
                   onChange={(event) => setForm((current) => ({ ...current, zip: event.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-white/18 bg-black/28 px-3 py-2 text-white outline-none transition focus:border-[#ff935f]"
+                  className={inputClassName}
                 />
               </label>
             </div>
@@ -181,7 +179,7 @@ export function CheckoutModal({
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="w-full rounded-full border border-[#ff935f] bg-ember px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42] disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-full border border-[#ff935f] bg-[#ff6a2d] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#ff7a42] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {status === "submitting" ? "Placing order..." : "Place order"}
             </button>
@@ -191,3 +189,4 @@ export function CheckoutModal({
     </div>
   );
 }
+

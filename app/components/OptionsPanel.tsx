@@ -21,38 +21,28 @@ interface OptionsPanelProps {
   onAddToCart: () => void;
 }
 
-function OptionGroup<T extends string | number>({
-  label,
-  options,
+function Chip<T extends string | number>({
+  value,
   active,
   onSelect,
 }: {
-  label: string;
-  options: readonly T[];
+  value: T;
   active: T;
   onSelect: (value: T) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onSelect(option)}
-            className={[
-              "rounded-full border px-3 py-1.5 text-xs font-medium tracking-[0.02em] transition",
-              active === option
-                ? "border-[#ff935f] bg-ember/16 text-white"
-                : "border-white/20 bg-transparent text-white/88 hover:border-white/40 hover:text-white",
-            ].join(" ")}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      className={[
+        "rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
+        active === value
+          ? "border-[#ff935f] bg-[#ff6a2d] text-white"
+          : "border-[#e0dfdf] bg-white text-[#171717] hover:border-[#cfcfcf]",
+      ].join(" ")}
+    >
+      {value}
+    </button>
   );
 }
 
@@ -67,46 +57,65 @@ export function OptionsPanel({
   onAddToCart,
 }: OptionsPanelProps) {
   return (
-    <aside className="surface rounded-3xl p-5 sm:p-6">
-      <div className="space-y-6">
+    <aside className="panel p-4 sm:p-5">
+      <div className="space-y-5">
         <header>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Order</p>
-          <h2 className="mt-1 text-2xl font-semibold leading-tight">Customize quickly</h2>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Order</p>
+          <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight">Quick options</h2>
         </header>
 
-        <OptionGroup
-          label="Size"
-          options={SIZE_OPTIONS.map((option) => option.value)}
-          active={size}
-          onSelect={onSizeChange}
-        />
+        <section className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Size</p>
+          <div className="flex flex-wrap gap-2">
+            {SIZE_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                value={option.value}
+                active={size}
+                onSelect={onSizeChange}
+              />
+            ))}
+          </div>
+        </section>
 
-        <OptionGroup
-          label="Quantity"
-          options={QUANTITY_OPTIONS}
-          active={quantity}
-          onSelect={onQuantityChange}
-        />
+        <section className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Quantity</p>
+          <div className="flex flex-wrap gap-2">
+            {QUANTITY_OPTIONS.map((option) => (
+              <Chip
+                key={option}
+                value={option}
+                active={quantity}
+                onSelect={onQuantityChange}
+              />
+            ))}
+          </div>
+        </section>
 
-        <OptionGroup
-          label="Finish"
-          options={FINISH_OPTIONS.map((option) => option.value)}
-          active={finish}
-          onSelect={onFinishChange}
-        />
+        <section className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Finish</p>
+          <div className="flex flex-wrap gap-2">
+            {FINISH_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                value={option.value}
+                active={finish}
+                onSelect={onFinishChange}
+              />
+            ))}
+          </div>
+        </section>
 
-        <div className="surface-soft space-y-2 rounded-2xl p-4 text-sm">
-          <div className="flex items-center justify-between text-muted">
-            <span>
-              {quantity} × {size}
-            </span>
+        <div className="panel-soft p-3 text-sm">
+          <div className="mb-1 flex items-center justify-between text-muted">
+            <span>{quantity} stickers</span>
             <span>{formatCurrency(pricing.subtotal)}</span>
           </div>
-          <div className="flex items-center justify-between text-muted">
+          <div className="mb-1 flex items-center justify-between text-muted">
             <span>Shipping</span>
             <span>{pricing.shipping === 0 ? "Free" : formatCurrency(pricing.shipping)}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-white/10 pt-2 text-base font-semibold">
+          <div className="flex items-center justify-between border-t border-[#dfdfdf] pt-2 font-semibold text-[#171717]">
             <span>Total</span>
             <span>{formatCurrency(pricing.total)}</span>
           </div>
@@ -115,13 +124,13 @@ export function OptionsPanel({
         <button
           type="button"
           onClick={onAddToCart}
-          className="w-full rounded-full border border-[#ff935f] bg-ember px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#ff7b42]"
+          className="w-full rounded-full border border-[#ff935f] bg-[#ff6a2d] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#ff7a42]"
         >
           Add to cart
         </button>
 
-        <p className="text-xs uppercase tracking-[0.07em] text-muted">
-          Waterproof. UV-safe. Ships in 3-5 business days.
+        <p className="text-[11px] uppercase tracking-[0.06em] text-muted">
+          Waterproof + UV-safe. Ships in 3-5 business days.
         </p>
       </div>
     </aside>

@@ -9,7 +9,7 @@ import { Uploader } from "./components/Uploader";
 import { StickerFinish, StickerSize, calculatePricing } from "./lib/pricing";
 import { formatCurrency } from "./lib/utils";
 
-const scrollTo = (id: string) => {
+const scrollToSection = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
@@ -27,7 +27,7 @@ export default function HomePage() {
   const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
   const { trigger, isSupported } = useWebHaptics({ debug: debugHaptics });
 
-  const runHaptic = useCallback(
+  const safeHaptic = useCallback(
     (pattern: string | number[]) => {
       if (!isSupported) return;
       try {
@@ -47,9 +47,9 @@ export default function HomePage() {
 
   const handleFileSelected = useCallback((file: File) => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    const next = URL.createObjectURL(file);
-    objectUrlRef.current = next;
-    setImageUrl(next);
+    const nextUrl = URL.createObjectURL(file);
+    objectUrlRef.current = nextUrl;
+    setImageUrl(nextUrl);
     setFileName(file.name);
     setCheckoutOpen(false);
     setLastCheckout(null);
@@ -68,15 +68,15 @@ export default function HomePage() {
   const itemSummary = `${quantity} × ${size} ${finish} stickers`;
 
   const handleAddToCart = () => {
-    runHaptic("success");
+    safeHaptic("success");
     setCheckoutSession((current) => current + 1);
     setCheckoutOpen(true);
   };
 
   return (
     <main className="px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-10 flex items-start justify-between gap-4">
+      <div className="mx-auto w-full max-w-[42rem]">
+        <header className="mb-8 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-muted">12ozsticke.rs</p>
             <p className="mt-1 text-sm text-muted">Premium custom stickers</p>
@@ -85,45 +85,51 @@ export default function HomePage() {
         </header>
 
         {!imageUrl ? (
-          <section className="surface rounded-3xl p-7 sm:p-10">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted">
+          <section className="panel p-6 sm:p-8">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
               Upload your photo → get a sticker preview instantly
             </p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-[1.08] sm:text-6xl">
+            <h1 className="mt-4 text-4xl font-semibold leading-[1.08] text-[#171717] sm:text-6xl">
               Turn any photo into a premium sticker.
             </h1>
-            <p className="mt-4 text-base text-muted sm:text-lg">
+            <p className="mt-4 max-w-2xl text-base text-muted">
               Upload → peel preview → order in 30 seconds.
             </p>
 
-            <div className="mt-8">
+            <div className="mt-7">
               <Uploader onFileSelected={handleFileSelected} label="Upload photo" />
             </div>
 
-            <div className="mt-8 flex items-center gap-5 text-sm">
-              <button type="button" onClick={() => scrollTo("materials")} className="ghost-link">
+            <div className="mt-7 flex flex-wrap gap-5 text-sm">
+              <button
+                type="button"
+                onClick={() => scrollToSection("materials")}
+                className="ghost-link"
+              >
                 See materials
               </button>
-              <button type="button" onClick={() => scrollTo("pricing")} className="ghost-link">
+              <button
+                type="button"
+                onClick={() => scrollToSection("pricing")}
+                className="ghost-link"
+              >
                 Pricing
               </button>
             </div>
           </section>
         ) : (
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-4">
-              <div className="surface-soft rounded-2xl p-4">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Preview</p>
-                <h1 className="mt-1 text-3xl font-semibold leading-tight sm:text-4xl">
-                  Peel your sticker before you buy.
-                </h1>
-                <p className="mt-2 text-sm text-muted">
-                  Uploaded file: <span className="text-white/95">{fileName}</span>
-                </p>
-              </div>
-
-              <StickerPeelPreview imageUrl={imageUrl} onSnap={() => runHaptic("success")} />
+          <section className="space-y-4">
+            <div className="panel-soft p-4">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Preview</p>
+              <h1 className="mt-1 text-[1.9rem] font-semibold leading-tight text-[#171717]">
+                Peel your sticker before you buy.
+              </h1>
+              <p className="mt-2 text-sm text-muted">
+                File ready: <span className="text-[#171717]">{fileName}</span>
+              </p>
             </div>
+
+            <StickerPeelPreview imageUrl={imageUrl} onSnap={() => safeHaptic("success")} />
 
             <OptionsPanel
               size={size}
@@ -138,28 +144,31 @@ export default function HomePage() {
           </section>
         )}
 
-        <section id="materials" className="mt-8 grid gap-3 sm:grid-cols-3">
-          <div className="surface-soft rounded-2xl p-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Material</p>
-            <p className="mt-1 text-sm font-medium">Weatherproof vinyl</p>
-          </div>
-          <div className="surface-soft rounded-2xl p-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Finish options</p>
-            <p className="mt-1 text-sm font-medium">Matte, gloss, holographic</p>
-          </div>
-          <div className="surface-soft rounded-2xl p-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Guarantee</p>
-            <p className="mt-1 text-sm font-medium">Love it or we rerun it</p>
-          </div>
+        <section id="materials" className="mt-4 grid gap-2 sm:grid-cols-3">
+          <article className="panel-soft p-3.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Material</p>
+            <p className="mt-1 text-sm font-medium text-[#171717]">Weatherproof vinyl</p>
+          </article>
+          <article className="panel-soft p-3.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Finish</p>
+            <p className="mt-1 text-sm font-medium text-[#171717]">Matte · Gloss · Holographic</p>
+          </article>
+          <article className="panel-soft p-3.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Guarantee</p>
+            <p className="mt-1 text-sm font-medium text-[#171717]">Love it or rerun</p>
+          </article>
         </section>
 
-        <section id="pricing" className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-sm">
+        <section
+          id="pricing"
+          className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#e4e4e4] bg-white px-4 py-3 text-sm"
+        >
           <p className="text-muted">Free US shipping over $65</p>
-          <p className="font-semibold">{formatCurrency(pricing.total)} current build</p>
+          <p className="font-semibold text-[#171717]">{formatCurrency(pricing.total)} current build</p>
         </section>
 
         {lastCheckout ? (
-          <p className="mt-3 text-sm text-green-300">Last order placed for {lastCheckout.email}.</p>
+          <p className="mt-3 text-sm text-[#2f6f43]">Last mock order placed for {lastCheckout.email}.</p>
         ) : null}
       </div>
 
@@ -171,7 +180,7 @@ export default function HomePage() {
         onClose={() => setCheckoutOpen(false)}
         onComplete={(data) => {
           setLastCheckout(data);
-          runHaptic("success");
+          safeHaptic("success");
         }}
       />
     </main>
