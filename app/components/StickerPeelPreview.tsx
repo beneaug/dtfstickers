@@ -80,6 +80,11 @@ export function StickerPeelPreview({
     return { displayW: Math.round(displaySize * aspect), displayH: displaySize };
   }, [imgDims, displaySize]);
 
+  // Keep display dims in a ref so applyPeelToDOM can read latest values
+  // without needing them in its dependency array (avoids reset-loop)
+  const displayDimsRef = useRef({ w: displaySize, h: displaySize });
+  displayDimsRef.current = { w: displayW, h: displayH };
+
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
   const stickerWrapperRef = useRef<HTMLDivElement>(null);
@@ -174,9 +179,19 @@ export function StickerPeelPreview({
       stickerWrapperRef.current.style.transform = `rotate(${rotation}rad)`;
     }
 
-    const counterRot = `rotate(${-rotation}rad)`;
-    if (mainImgRef.current) mainImgRef.current.style.transform = counterRot;
-    if (flapImgRef.current) flapImgRef.current.style.transform = counterRot;
+    // Counter-rotate images to stay upright, with coverage scale so
+    // non-square images always fill the clip area at any peel angle.
+    // Formula: scale = cos|θ| + (maxDim/minDim) * sin|θ|
+    const { w: dw, h: dh } = displayDimsRef.current;
+    const absRot = Math.abs(rotation);
+    const cs = Math.cos(absRot);
+    const sn = Math.sin(absRot);
+    const ar = dw === dh ? 1 : Math.max(dw, dh) / Math.min(dw, dh);
+    const coverScale = cs + ar * sn;
+
+    const counterTransform = `rotate(${-rotation}rad) scale(${coverScale})`;
+    if (mainImgRef.current) mainImgRef.current.style.transform = counterTransform;
+    if (flapImgRef.current) flapImgRef.current.style.transform = counterTransform;
   }, [displaySize]);
 
   // Reset on image/size change
@@ -189,6 +204,11 @@ export function StickerPeelPreview({
     firstPeelRef.current = false;
     requestAnimationFrame(() => applyPeelToDOM());
   }, [applyPeelToDOM, imageUrl, size]);
+
+  // Re-apply peel when image dimensions are measured (aspect ratio change)
+  useEffect(() => {
+    if (imgDims) requestAnimationFrame(() => applyPeelToDOM());
+  }, [imgDims, applyPeelToDOM]);
 
   // --- Spring Animation Loop ---
 
