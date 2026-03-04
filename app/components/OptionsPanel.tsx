@@ -58,15 +58,15 @@ export function OptionsPanel({
   onFinishChange,
   onAddToCart,
 }: OptionsPanelProps) {
-  const { trigger, isSupported } = useWebHaptics();
+  const { trigger } = useWebHaptics();
 
   const hapticSelect = useCallback(
     <T,>(fn: (v: T) => void) =>
       (v: T) => {
-        if (isSupported) try { trigger("selection" as never); } catch { /* */ }
+        try { trigger("selection" as never); } catch { /* */ }
         fn(v);
       },
-    [trigger, isSupported],
+    [trigger],
   );
 
   return (

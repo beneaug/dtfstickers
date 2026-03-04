@@ -33,14 +33,13 @@ export function useWizard() {
   const objectUrlRef = useRef<string | null>(null);
 
   const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
-  const { trigger, isSupported } = useWebHaptics({ debug: debugHaptics });
+  const { trigger } = useWebHaptics({ debug: debugHaptics });
 
   const safeHaptic = useCallback(
     (pattern: string | number[]) => {
-      if (!isSupported) return;
       try { trigger(pattern as never); } catch { /* silent */ }
     },
-    [isSupported, trigger],
+    [trigger],
   );
 
   useEffect(() => {
