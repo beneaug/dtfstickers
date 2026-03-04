@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWebHaptics } from "web-haptics/react";
 import type { CheckoutFormData } from "../components/CheckoutModal";
 import { StickerFinish, StickerSize, calculatePricing } from "./pricing";
+import { haptic, type HapticPreset } from "./haptics";
 import { burst } from "./emoji-burst";
 import { formatCurrency } from "./utils";
 import { WizardStep, WIZARD_STEPS, stepIndex } from "./wizard";
@@ -32,15 +32,9 @@ export function useWizard() {
 
   const objectUrlRef = useRef<string | null>(null);
 
-  const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
-  const { trigger } = useWebHaptics({ debug: debugHaptics });
-
-  const safeHaptic = useCallback(
-    (pattern: string | number[]) => {
-      try { trigger(pattern as never); } catch { /* silent */ }
-    },
-    [trigger],
-  );
+  const safeHaptic = useCallback((preset: HapticPreset) => {
+    try { haptic(preset); } catch { /* silent */ }
+  }, []);
 
   useEffect(() => {
     return () => {

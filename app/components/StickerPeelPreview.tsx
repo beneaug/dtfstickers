@@ -9,7 +9,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useWebHaptics } from "web-haptics/react";
+import { haptic } from "../lib/haptics";
 import { clamp } from "../lib/utils";
 import {
   stepSpring,
@@ -109,19 +109,9 @@ export function StickerPeelPreview({
   const adhesiveBreakRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
 
-  const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
-  const { trigger } = useWebHaptics({ debug: debugHaptics });
-
-  const safeHaptic = useCallback(
-    (pattern: string | number[]) => {
-      try {
-        trigger(pattern as never);
-      } catch {
-        /* silent */
-      }
-    },
-    [trigger],
-  );
+  const safeHaptic = useCallback((preset: "light" | "medium" | "success") => {
+    try { haptic(preset); } catch { /* silent */ }
+  }, []);
 
   // --- Burst position helper ---
   const getBurstPos = useCallback(() => {
@@ -417,7 +407,6 @@ export function StickerPeelPreview({
           ref={stickerWrapperRef}
           className="relative"
           style={{
-            contain: "layout style paint",
             userSelect: "none",
             WebkitTouchCallout: "none",
             WebkitTapHighlightColor: "transparent",
@@ -477,12 +466,11 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
-          {/* Main sticker — drop-shadow set once, not updated per-frame */}
+          {/* Main sticker — NO filter on clip-path div (perf critical) */}
           <div
             ref={stickerMainRef}
             style={{
               clipPath: initMainClip,
-              filter: "drop-shadow(1px 3px 5px rgba(0,0,0,0.18))",
               willChange: "clip-path",
             }}
           >
@@ -497,9 +485,9 @@ export function StickerPeelPreview({
               onContextMenu={(ev) => ev.preventDefault()}
               onLoad={(ev) => {
                 const img = ev.currentTarget;
-                if (img.naturalWidth && img.naturalHeight) {
-                  setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
-                }
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+                if (w && h) setImgDims({ w, h });
               }}
             />
           </div>
@@ -521,7 +509,7 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap */}
+          {/* Peeled flap — NO filter on clip-path div (perf critical) */}
           <div
             ref={flapRef}
             style={{
@@ -532,7 +520,6 @@ export function StickerPeelPreview({
               top: initFlapTop,
               clipPath: initFlapClip,
               transform: "scaleY(-1)",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.08))",
               willChange: "clip-path",
             }}
           >

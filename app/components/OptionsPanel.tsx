@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useWebHaptics } from "web-haptics/react";
+import { haptic } from "../lib/haptics";
 import {
   FINISH_OPTIONS,
   QUANTITY_OPTIONS,
@@ -58,15 +58,13 @@ export function OptionsPanel({
   onFinishChange,
   onAddToCart,
 }: OptionsPanelProps) {
-  const { trigger } = useWebHaptics();
-
   const hapticSelect = useCallback(
     <T,>(fn: (v: T) => void) =>
       (v: T) => {
-        try { trigger("selection" as never); } catch { /* */ }
+        try { haptic("selection"); } catch { /* */ }
         fn(v);
       },
-    [trigger],
+    [],
   );
 
   return (

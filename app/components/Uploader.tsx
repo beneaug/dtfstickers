@@ -17,7 +17,7 @@ export function Uploader({
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file || (!file.type.startsWith("image/") && !file.name.match(/\.(svg|webp|avif|heic)$/i))) return;
     onFileSelected(file);
     event.target.value = "";
   };
@@ -27,7 +27,7 @@ export function Uploader({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.svg"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -44,7 +44,7 @@ export function Uploader({
       </button>
       {!subtle ? (
         <p className="text-[11px] tracking-[0.04em] text-muted">
-          PNG, JPG, HEIC. Private until checkout.
+          PNG, JPG, SVG, WEBP, HEIC.
         </p>
       ) : null}
     </div>

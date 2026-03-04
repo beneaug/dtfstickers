@@ -12,7 +12,7 @@ export function UploadStep({ onFileSelected }: UploadStepProps) {
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
+      if (!file.type.startsWith("image/") && !file.name.match(/\.(svg|webp|avif|heic)$/i)) return;
       onFileSelected(file);
     },
     [onFileSelected],
@@ -58,7 +58,7 @@ export function UploadStep({ onFileSelected }: UploadStepProps) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.svg"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -79,7 +79,7 @@ export function UploadStep({ onFileSelected }: UploadStepProps) {
           </button>
         )}
         <p className="text-[11px] tracking-[0.04em] text-muted">
-          PNG, JPG, HEIC &mdash; stays private until you checkout
+          PNG, JPG, SVG, WEBP, HEIC &mdash; stays private until you checkout
         </p>
       </div>
     </section>
