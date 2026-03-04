@@ -4,7 +4,9 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
+  useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -65,6 +67,18 @@ export function StickerPeelPreview({
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
   const dragRange = getDragRange(displaySize);
+
+  // Track natural image dimensions for aspect-ratio-aware sizing
+  const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
+
+  const { displayW, displayH } = useMemo(() => {
+    if (!imgDims) return { displayW: displaySize, displayH: displaySize };
+    const aspect = imgDims.w / imgDims.h;
+    if (aspect >= 1) {
+      return { displayW: displaySize, displayH: Math.round(displaySize / aspect) };
+    }
+    return { displayW: Math.round(displaySize * aspect), displayH: displaySize };
+  }, [imgDims, displaySize]);
 
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,6 +181,7 @@ export function StickerPeelPreview({
 
   // Reset on image/size change
   useEffect(() => {
+    setImgDims(null);
     peelRef.current = REST_PEEL;
     angleRef.current = DEFAULT_DRAG_ANGLE;
     peelSpring.current = { value: REST_PEEL, velocity: 0 };
@@ -375,9 +390,8 @@ export function StickerPeelPreview({
   const initFlapTop = `${(2 * REST_PEEL - 1) * 100}%`;
 
   const imgStyle: React.CSSProperties = {
-    width: displaySize,
-    height: displaySize,
-    objectFit: "contain",
+    width: displayW,
+    height: displayH,
     display: "block",
   };
 
@@ -483,6 +497,12 @@ export function StickerPeelPreview({
               }}
               draggable={false}
               onContextMenu={(ev) => ev.preventDefault()}
+              onLoad={(ev) => {
+                const img = ev.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
+                }
+              }}
             />
           </div>
 
