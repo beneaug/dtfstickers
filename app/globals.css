@@ -72,25 +72,48 @@ main {
   color: var(--muted);
 }
 
+/* --- Panels --- */
+
 .panel {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 1.25rem;
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.6s ease, box-shadow 0.3s ease;
 }
 
 .panel-soft {
   border: 1px solid var(--line);
   background: var(--bg-soft);
   border-radius: 1rem;
+  transition: background-color 0.3s ease;
 }
+
+/* --- Links & Buttons --- */
 
 .ghost-link {
   color: var(--muted);
-  transition: color 120ms ease;
+  transition: color 150ms ease, transform 150ms ease;
 }
 
 .ghost-link:hover {
   color: var(--text);
+  transform: translateY(-1px);
 }
 
+/* --- Sticker section entrance --- */
+
+.sticker-section {
+  animation: section-enter 0.5s ease both;
+}
+
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
