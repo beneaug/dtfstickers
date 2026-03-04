@@ -484,23 +484,31 @@ export function StickerPeelPreview({
             />
           </div>
 
-          {/* Fold shadow — positioned at fold line, rotated to match */}
+          {/* Fold shadow — clipped to sticker bounds */}
           <div
-            ref={foldShadowRef}
             style={{
               position: "absolute",
-              width: shadowLength,
-              height: 32,
-              left: initFold.shadowPos.x,
-              top: initFold.shadowPos.y,
-              transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
-              background:
-                "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
+              inset: 0,
+              overflow: "hidden",
               pointerEvents: "none",
               zIndex: 2,
-              opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.6) : 0,
             }}
-          />
+          >
+            <div
+              ref={foldShadowRef}
+              style={{
+                position: "absolute",
+                width: shadowLength,
+                height: 32,
+                left: initFold.shadowPos.x,
+                top: initFold.shadowPos.y,
+                transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
+                background:
+                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
+                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.6) : 0,
+              }}
+            />
+          </div>
 
           {/* Peeled flap — reflected across fold line via CSS matrix */}
           <div
