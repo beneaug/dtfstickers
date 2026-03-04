@@ -16,7 +16,16 @@ import {
   SPRING_SNAP_FORWARD,
   type SpringState,
 } from "../lib/spring";
-import { adhesiveCurve, VelocityTracker } from "../lib/peel-physics";
+import {
+  adhesiveCurve,
+  VelocityTracker,
+  computeFoldLine,
+  clipPolygon,
+  mirrorPolygon,
+  continuousDragAngle,
+  DEFAULT_DRAG_ANGLE,
+  vec2,
+} from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
 import type { StickerSize } from "../lib/pricing";
 
@@ -29,9 +38,8 @@ interface StickerPeelPreviewProps {
 
 const REST_PEEL = 0.08;
 const SNAP_THRESHOLD = 0.56;
-const P = 12; // px — clip-path bleed so SVG stroke filter isn't clipped
+const P = 12; // px — extra bleed for SVG stroke filter
 
-// Size in inches → display pixels
 const SIZE_TO_PX: Record<string, number> = {
   "2x2": 150,
   "3x3": 210,
@@ -51,6 +59,17 @@ function getDragRange(displaySize: number): number {
   return Math.max(180, displaySize * 1.2);
 }
 
+/** Convert polygon vertices to CSS polygon() string */
+function polyToClipPath(poly: { x: number; y: number }[], w: number, h: number): string {
+  if (poly.length === 0) return "polygon(0% 0%, 0% 0%, 0% 0%)";
+  const points = poly.map((p) => {
+    const px = ((p.x + P) / (w + 2 * P)) * 100;
+    const py = ((p.y + P) / (h + 2 * P)) * 100;
+    return `${px.toFixed(2)}% ${py.toFixed(2)}%`;
+  });
+  return `polygon(${points.join(", ")})`;
+}
+
 export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
@@ -62,6 +81,9 @@ export function StickerPeelPreview({
   const strokeW = getStrokeWidth(displaySize);
   const dragRange = getDragRange(displaySize);
 
+  const stickerW = displaySize;
+  const stickerH = displaySize;
+
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
@@ -70,15 +92,17 @@ export function StickerPeelPreview({
 
   // Interaction refs
   const peelRef = useRef(REST_PEEL);
+  const angleRef = useRef(DEFAULT_DRAG_ANGLE); // continuously updated
   const activePointerRef = useRef<number | null>(null);
   const velocityTracker = useRef(new VelocityTracker());
   const snappedRef = useRef(false);
-  const dragStartRef = useRef<{ clientY: number } | null>(null);
+  const dragStartRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
   const animatingRef = useRef(false);
   const springConfigRef = useRef(SPRING_SNAP_BACK);
+  const springAngleRef = useRef(DEFAULT_DRAG_ANGLE);
 
   const [isActive, setIsActive] = useState(false);
 
@@ -95,14 +119,11 @@ export function StickerPeelPreview({
       if (!isSupported) return;
       try {
         trigger(pattern as never);
-      } catch {
-        /* silent */
-      }
+      } catch { /* silent */ }
     },
     [isSupported, trigger],
   );
 
-  // --- Burst position helper ---
   const getBurstPos = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect)
@@ -113,56 +134,70 @@ export function StickerPeelPreview({
     };
   }, []);
 
-  // --- Apply peel state to DOM (ref-driven, zero rerenders) ---
+  // --- Apply peel state to DOM ---
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
-    // Top-down peel: fold line at peel*100% from top
-    // peel=0 → fold at 0% (nothing peeled)
-    // peel=0.08 → fold at 8% (top 8% peeled back)
-    // peel=1 → fold at 100% (fully peeled)
-    const foldPct = `${peel * 100}%`;
-    const s = `${-P}px`;
-    const e = `calc(100% + ${P}px)`;
+    const angle = angleRef.current;
 
-    // Main sticker: visible from fold line to bottom
+    const extCorners = [
+      vec2(-P, -P),
+      vec2(stickerW + P, -P),
+      vec2(stickerW + P, stickerH + P),
+      vec2(-P, stickerH + P),
+    ];
+
+    const fold = computeFoldLine(angle, peel, stickerW, stickerH);
+    const { main, flap } = clipPolygon(extCorners, fold);
+
     if (stickerMainRef.current) {
       stickerMainRef.current.style.clipPath =
-        `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
+        main.length >= 3 ? polyToClipPath(main, stickerW, stickerH) : "none";
     }
 
-    // Flap: visible from top to fold line, mirrored downward at fold
     if (flapRef.current) {
-      flapRef.current.style.clipPath =
-        `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
-      flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
+      if (flap.length >= 3) {
+        const mirrored = mirrorPolygon(flap, fold);
+        flapRef.current.style.clipPath = polyToClipPath(mirrored, stickerW, stickerH);
+        flapRef.current.style.transform = "none";
+        flapRef.current.style.top = "0";
+      } else {
+        flapRef.current.style.clipPath = "polygon(0% 0%, 0% 0%, 0% 0%)";
+      }
     }
 
-    // Fold shadow at fold line
     if (foldShadowRef.current) {
-      foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
+      const foldAngleDeg = (Math.atan2(fold.normal.y, fold.normal.x) * 180) / Math.PI + 90;
+      const foldPctX = (fold.point.x / stickerW) * 100;
+      const foldPctY = (fold.point.y / stickerH) * 100;
+      foldShadowRef.current.style.left = `${foldPctX}%`;
+      foldShadowRef.current.style.top = `${foldPctY}%`;
+      foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${foldAngleDeg}deg)`;
       foldShadowRef.current.style.opacity = String(
         peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
       );
     }
-  }, []);
+  }, [stickerW, stickerH]);
 
   // Reset on image/size change
   useEffect(() => {
     peelRef.current = REST_PEEL;
+    angleRef.current = DEFAULT_DRAG_ANGLE;
     peelSpring.current = { value: REST_PEEL, velocity: 0 };
     snappedRef.current = false;
     firstPeelRef.current = false;
     requestAnimationFrame(() => applyPeelToDOM());
   }, [applyPeelToDOM, imageUrl, size]);
 
-  // --- Spring Animation Loop ---
+  // --- Spring Animation ---
 
   const runSpringAnimation = useCallback(
     (targetPeel: number, config: typeof SPRING_SNAP_BACK) => {
       if (animatingRef.current) return;
       animatingRef.current = true;
       springConfigRef.current = config;
+      // Freeze angle for spring duration
+      springAngleRef.current = angleRef.current;
 
       peelSpring.current = {
         value: peelRef.current,
@@ -182,25 +217,16 @@ export function StickerPeelPreview({
           springConfigRef.current,
           dt,
         );
-        peelSpring.current = {
-          value: peelResult.value,
-          velocity: peelResult.velocity,
-        };
+        peelSpring.current = { value: peelResult.value, velocity: peelResult.velocity };
         peelRef.current = clamp(peelResult.value, 0, 1);
+        angleRef.current = springAngleRef.current;
 
         applyPeelToDOM();
 
-        // Bounce haptics + sparkle
+        // Bounce haptics
         const bounceSign = Math.sign(peelResult.velocity);
-        if (
-          bounceSign !== 0 &&
-          bounceSign !== lastBounceSign &&
-          Math.abs(peelResult.velocity) > 0.08
-        ) {
-          const intensity = Math.min(
-            20,
-            Math.round(Math.abs(peelResult.velocity) * 15),
-          );
+        if (bounceSign !== 0 && bounceSign !== lastBounceSign && Math.abs(peelResult.velocity) > 0.08) {
+          const intensity = Math.min(20, Math.round(Math.abs(peelResult.velocity) * 15));
           if (intensity > 3) {
             safeHaptic([intensity]);
             if (intensity > 8) {
@@ -213,6 +239,10 @@ export function StickerPeelPreview({
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
+          if (targetPeel <= REST_PEEL + 0.01) {
+            angleRef.current = DEFAULT_DRAG_ANGLE;
+            requestAnimationFrame(() => applyPeelToDOM());
+          }
           return;
         }
 
@@ -237,7 +267,7 @@ export function StickerPeelPreview({
       adhesiveBreakRef.current = false;
       velocityTracker.current.reset();
 
-      dragStartRef.current = { clientY: event.clientY };
+      dragStartRef.current = { clientX: event.clientX, clientY: event.clientY };
 
       event.currentTarget.setPointerCapture(event.pointerId);
       setIsActive(true);
@@ -252,20 +282,20 @@ export function StickerPeelPreview({
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (
-        activePointerRef.current !== event.pointerId ||
-        !dragStartRef.current
-      )
-        return;
+      if (activePointerRef.current !== event.pointerId || !dragStartRef.current) return;
 
       event.preventDefault();
       velocityTracker.current.push(event.clientX, event.clientY);
 
+      const dx = event.clientX - dragStartRef.current.clientX;
       const dy = event.clientY - dragStartRef.current.clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Downward drag (+dy > 0) increases peel — pull sticker down from top
-      const rawDisplacement = clamp(dy / dragRange, 0, 1);
+      // Continuously update angle — follows the finger in real-time
+      angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
 
+      // Peel amount based on total distance from start
+      const rawDisplacement = clamp(distance / dragRange, 0, 1);
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,
@@ -286,11 +316,7 @@ export function StickerPeelPreview({
       const vel = velocityTracker.current.get();
       const now = performance.now();
 
-      if (
-        dy > 0 &&
-        now - lastMicroRef.current >
-          Math.max(60, 200 - vel.speed * 120)
-      ) {
+      if (distance > 0 && now - lastMicroRef.current > Math.max(60, 200 - vel.speed * 120)) {
         const intensity = Math.round(clamp(4 + vel.speed * 8, 4, 14));
         safeHaptic([intensity, 20, Math.round(intensity * 0.7)]);
         lastMicroRef.current = now;
@@ -320,8 +346,10 @@ export function StickerPeelPreview({
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      // Downward velocity (positive vy) = increasing peel
-      peelSpring.current.velocity = vel.vy * 0.8;
+      // Project velocity onto current drag direction for spring
+      const angle = angleRef.current;
+      const projectedVel = vel.vx * Math.cos(angle) + vel.vy * Math.sin(angle);
+      peelSpring.current.velocity = projectedVel * 0.8;
 
       if (currentPeel > SNAP_THRESHOLD) {
         safeHaptic("success");
@@ -340,20 +368,17 @@ export function StickerPeelPreview({
   );
 
   useEffect(() => {
-    return () => {
-      animatingRef.current = false;
-    };
+    return () => { animatingRef.current = false; };
   }, []);
 
   const willChange = isActive ? "clip-path, transform" : "auto";
 
-  // Pre-compute initial clip values for first paint
+  // Initial clip-paths (default downward peel at REST_PEEL)
+  const initS = `${-P}px`;
+  const initE = `calc(100% + ${P}px)`;
   const initFoldPct = `${REST_PEEL * 100}%`;
-  const s = `${-P}px`;
-  const e = `calc(100% + ${P}px)`;
-  const initMainClip = `polygon(${s} ${initFoldPct}, ${e} ${initFoldPct}, ${e} ${e}, ${s} ${e})`;
-  const initFlapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${initFoldPct}, ${s} ${initFoldPct})`;
-  const initFlapTop = `${(2 * REST_PEEL - 1) * 100}%`;
+  const initMainClip = `polygon(${initS} ${initFoldPct}, ${initE} ${initFoldPct}, ${initE} ${initE}, ${initS} ${initE})`;
+  const initFlapClip = `polygon(${initS} ${initS}, ${initE} ${initS}, ${initE} ${initFoldPct}, ${initS} ${initFoldPct})`;
 
   const imgStyle: React.CSSProperties = {
     width: displaySize,
@@ -388,63 +413,23 @@ export function StickerPeelPreview({
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {/* SVG Filters — stroke + paper fill only (no specular, fast) */}
-          <svg
-            width="0"
-            height="0"
-            style={{ position: "absolute" }}
-            aria-hidden
-          >
+          <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
             <defs>
-              {/* White sticker stroke — dilates alpha outward, fills white */}
-              <filter
-                id={`stroke-${uid}`}
-                x="-10%"
-                y="-10%"
-                width="120%"
-                height="120%"
-              >
-                <feMorphology
-                  operator="dilate"
-                  radius={strokeW}
-                  in="SourceAlpha"
-                  result="expanded"
-                />
+              <filter id={`stroke-${uid}`} x="-10%" y="-10%" width="120%" height="120%">
+                <feMorphology operator="dilate" radius={strokeW} in="SourceAlpha" result="expanded" />
                 <feFlood floodColor="white" result="white" />
-                <feComposite
-                  operator="in"
-                  in="white"
-                  in2="expanded"
-                  result="whiteStroke"
-                />
-                <feComposite
-                  operator="over"
-                  in="SourceGraphic"
-                  in2="whiteStroke"
-                />
+                <feComposite operator="in" in="white" in2="expanded" result="whiteStroke" />
+                <feComposite operator="over" in="SourceGraphic" in2="whiteStroke" />
               </filter>
-
-              {/* Paper backing fill — matches stroke shape, warm paper color */}
-              <filter
-                id={`ef-${uid}`}
-                x="-10%"
-                y="-10%"
-                width="120%"
-                height="120%"
-              >
-                <feMorphology
-                  operator="dilate"
-                  radius={strokeW}
-                  in="SourceAlpha"
-                  result="shape"
-                />
+              <filter id={`ef-${uid}`} x="-10%" y="-10%" width="120%" height="120%">
+                <feMorphology operator="dilate" radius={strokeW} in="SourceAlpha" result="shape" />
                 <feFlood floodColor="#e8e4dd" result="flood" />
                 <feComposite operator="in" in="flood" in2="shape" />
               </filter>
             </defs>
           </svg>
 
-          {/* Main sticker (front face, clipped from fold to bottom) */}
+          {/* Main sticker */}
           <div
             ref={stickerMainRef}
             style={{
@@ -456,24 +441,22 @@ export function StickerPeelPreview({
             <img
               src={imageUrl}
               alt="Sticker preview"
-              style={{
-                ...imgStyle,
-                filter: `url(#stroke-${uid})`,
-              }}
+              style={{ ...imgStyle, filter: `url(#stroke-${uid})` }}
               draggable={false}
               onContextMenu={(ev) => ev.preventDefault()}
             />
           </div>
 
-          {/* Fold shadow — subtle crease at fold line */}
+          {/* Fold shadow */}
           <div
             ref={foldShadowRef}
             style={{
               position: "absolute",
-              left: -P,
-              right: -P,
+              width: displaySize + P * 2 + 40,
               height: 32,
-              top: `calc(${initFoldPct} - 16px)`,
+              left: "50%",
+              top: `${REST_PEEL * 100}%`,
+              transform: "translate(-50%, -50%)",
               background:
                 "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
               pointerEvents: "none",
@@ -482,7 +465,7 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap (paper backing, mirrored at fold line) */}
+          {/* Peeled flap */}
           <div
             ref={flapRef}
             style={{
@@ -490,7 +473,7 @@ export function StickerPeelPreview({
               width: "100%",
               height: "100%",
               left: 0,
-              top: initFlapTop,
+              top: 0,
               clipPath: initFlapClip,
               transform: "scaleY(-1)",
               filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.1))",
@@ -500,10 +483,7 @@ export function StickerPeelPreview({
             <img
               src={imageUrl}
               alt=""
-              style={{
-                ...imgStyle,
-                filter: `url(#ef-${uid})`,
-              }}
+              style={{ ...imgStyle, filter: `url(#ef-${uid})` }}
               draggable={false}
             />
           </div>
@@ -511,7 +491,7 @@ export function StickerPeelPreview({
       </div>
 
       <p className="absolute bottom-3 left-0 w-full text-center text-[11px] uppercase tracking-[0.08em] text-muted">
-        Pull down to peel
+        Drag to peel
       </p>
     </div>
   );
