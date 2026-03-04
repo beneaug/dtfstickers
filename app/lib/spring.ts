@@ -44,15 +44,15 @@ export function stepSpring(
 }
 
 export const SPRING_SNAP_BACK: SpringConfig = {
-  stiffness: 180,
-  damping: 14,
+  stiffness: 170,
+  damping: 22,
   mass: 1,
   precision: 0.001,
 };
 
 export const SPRING_SNAP_FORWARD: SpringConfig = {
-  stiffness: 300,
-  damping: 18,
+  stiffness: 260,
+  damping: 26,
   mass: 1,
   precision: 0.001,
 };

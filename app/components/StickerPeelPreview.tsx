@@ -54,8 +54,10 @@ function getStrokeWidth(displaySize: number): number {
 }
 
 function getDragRange(displaySize: number): number {
-  return Math.max(180, displaySize * 1.2);
+  return Math.max(220, displaySize * 1.6);
 }
+
+const ANGLE_LOCK_DIST = 20; // px before locking drag direction
 
 export function StickerPeelPreview({
   imageUrl,
@@ -101,6 +103,10 @@ export function StickerPeelPreview({
   );
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafPendingRef = useRef(false);
+  const angleLockRef = useRef<{ locked: boolean; angle: number }>({
+    locked: false,
+    angle: DEFAULT_DRAG_ANGLE,
+  });
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
@@ -152,7 +158,7 @@ export function StickerPeelPreview({
       foldShadowRef.current.style.top = `${fold.shadowPos.y}px`;
       foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
       foldShadowRef.current.style.opacity = String(
-        peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
+        peel > 0.02 ? clamp(peel * 1.5, 0, 0.35) : 0,
       );
     }
   }, []);
@@ -246,6 +252,7 @@ export function StickerPeelPreview({
         clientX: event.clientX,
         clientY: event.clientY,
       };
+      angleLockRef.current = { locked: false, angle: DEFAULT_DRAG_ANGLE };
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
@@ -277,9 +284,22 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
+      // Lock drag angle after initial movement — prevents jitter
+      if (!angleLockRef.current.locked && dist >= ANGLE_LOCK_DIST) {
+        angleLockRef.current = { locked: true, angle: Math.atan2(dy, dx) };
+      }
 
-      const rawDisplacement = clamp(dist / dragRange, 0, 1);
+      if (angleLockRef.current.locked) {
+        angleRef.current = angleLockRef.current.angle;
+      }
+
+      // Project displacement onto locked direction for deliberate feel
+      const a = angleRef.current;
+      const projDist = angleLockRef.current.locked
+        ? Math.max(0, dx * Math.cos(a) + dy * Math.sin(a))
+        : dist;
+
+      const rawDisplacement = clamp(projDist / dragRange, 0, 1);
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,
@@ -499,13 +519,13 @@ export function StickerPeelPreview({
               style={{
                 position: "absolute",
                 width: shadowLength,
-                height: 32,
+                height: 20,
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
                 transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
                 background:
-                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
-                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.6) : 0,
+                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.06) 40%, rgba(0,0,0,0.04) 60%, transparent 100%)",
+                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 1.5, 0, 0.35) : 0,
               }}
             />
           </div>
