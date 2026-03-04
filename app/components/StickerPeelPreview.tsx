@@ -17,40 +17,55 @@ import {
   type SpringState,
 } from "../lib/spring";
 import { adhesiveCurve, VelocityTracker } from "../lib/peel-physics";
+import type { StickerSize } from "../lib/pricing";
 
 interface StickerPeelPreviewProps {
   imageUrl: string;
+  size?: StickerSize;
   onSnap?: () => void;
 }
 
-const REST_PEEL = 0.1;
+const REST_PEEL = 0.08;
 const SNAP_THRESHOLD = 0.56;
-const DRAG_RANGE = 280; // px of vertical drag for full peel
-const P = 10; // px — clip-path bleed for filter overflow
-const STROKE_W = 5; // px — white sticker stroke width
+const P = 12; // px — clip-path bleed so SVG stroke filter isn't clipped
 
-// Pre-compute initial clip-path values for REST_PEEL to avoid flash
-const INIT_PEEL_PCT = `${REST_PEEL * 100}%`;
-const SV = `${-P}px`;
-const EV = `calc(100% + ${P}px)`;
-const INIT_MAIN_CLIP = `polygon(${SV} ${INIT_PEEL_PCT}, ${EV} ${INIT_PEEL_PCT}, ${EV} ${EV}, ${SV} ${EV})`;
-const INIT_FLAP_CLIP = `polygon(${SV} ${SV}, ${EV} ${SV}, ${EV} ${INIT_PEEL_PCT}, ${SV} ${INIT_PEEL_PCT})`;
-const INIT_FLAP_TOP = `calc(-100% + ${REST_PEEL * 200}% - 1px)`;
+// Size in inches → display pixels (proportional scale)
+const SIZE_TO_PX: Record<string, number> = {
+  "2x2": 150,
+  "3x3": 210,
+  "4x4": 270,
+  "5x5": 330,
+};
+
+function getStickerDisplaySize(size: string): number {
+  return SIZE_TO_PX[size] ?? 210;
+}
+
+function getStrokeWidth(displaySize: number): number {
+  // ~2.5% of display size, minimum 3px
+  return Math.max(3, Math.round(displaySize * 0.025));
+}
+
+function getDragRange(displaySize: number): number {
+  // Proportional drag distance for full peel
+  return Math.max(180, displaySize * 1.2);
+}
 
 export function StickerPeelPreview({
   imageUrl,
+  size = "3x3",
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
+  const displaySize = getStickerDisplaySize(size);
+  const strokeW = getStrokeWidth(displaySize);
+  const dragRange = getDragRange(displaySize);
 
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
-  const shadowFlapRef = useRef<HTMLDivElement>(null);
-  const pointLightRef = useRef<SVGFEPointLightElement>(null);
-  const pointLightFlippedRef = useRef<SVGFEPointLightElement>(null);
-  const stickerContainerRef = useRef<HTMLDivElement>(null);
+  const foldShadowRef = useRef<HTMLDivElement>(null);
 
   // Interaction refs
   const peelRef = useRef(REST_PEEL);
@@ -90,53 +105,42 @@ export function StickerPeelPreview({
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
-    const peelPct = `${peel * 100}%`;
+    // Bottom-up peel: fold line is at (1-peel)*100% from top
+    // peel=0 → fold at 100% (bottom, nothing peeled)
+    // peel=0.08 → fold at 92% (bottom 8% peeled)
+    // peel=1 → fold at 0% (fully peeled)
+    const foldPct = `${(1 - peel) * 100}%`;
     const s = `${-P}px`;
     const e = `calc(100% + ${P}px)`;
 
-    // Main sticker: visible from peelPct to bottom
+    // Main sticker: visible from top to fold line
     if (stickerMainRef.current) {
       stickerMainRef.current.style.clipPath =
-        `polygon(${s} ${peelPct}, ${e} ${peelPct}, ${e} ${e}, ${s} ${e})`;
+        `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
     }
 
-    // Flap + shadow flap: visible from top to peelPct, positioned at fold
-    const flapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${peelPct}, ${s} ${peelPct})`;
-    const flapTop = `calc(-100% + ${peel * 200}% - 1px)`;
-
+    // Flap: visible from fold line to bottom, mirrored at fold via scaleY(-1) + top offset
     if (flapRef.current) {
-      flapRef.current.style.clipPath = flapClip;
-      flapRef.current.style.top = flapTop;
+      flapRef.current.style.clipPath =
+        `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
+      flapRef.current.style.top = `${(1 - 2 * peel) * 100}%`;
     }
-    if (shadowFlapRef.current) {
-      shadowFlapRef.current.style.clipPath = flapClip;
-      shadowFlapRef.current.style.top = flapTop;
+
+    // Fold shadow — subtle crease line at the fold
+    if (foldShadowRef.current) {
+      foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
+      foldShadowRef.current.style.opacity = String(
+        peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
+      );
     }
   }, []);
 
-  // --- Light position (tracks pointer for specular) ---
-
-  const updateLightPosition = useCallback(
-    (clientX: number, clientY: number) => {
-      const rect = stickerContainerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const rx = clientX - rect.left;
-      const ry = clientY - rect.top;
-      pointLightRef.current?.setAttribute("x", String(rx));
-      pointLightRef.current?.setAttribute("y", String(ry));
-      pointLightFlippedRef.current?.setAttribute("x", String(rx));
-      pointLightFlippedRef.current?.setAttribute(
-        "y",
-        String(rect.height - ry),
-      );
-    },
-    [],
-  );
-
-  // Initial apply
+  // Initial apply + reset on image/size change
   useEffect(() => {
+    peelRef.current = REST_PEEL;
+    peelSpring.current = { value: REST_PEEL, velocity: 0 };
     requestAnimationFrame(() => applyPeelToDOM());
-  }, [applyPeelToDOM, imageUrl]);
+  }, [applyPeelToDOM, imageUrl, size]);
 
   // --- Spring Animation Loop ---
 
@@ -218,20 +222,16 @@ export function StickerPeelPreview({
       event.currentTarget.setPointerCapture(event.pointerId);
       setIsActive(true);
 
-      updateLightPosition(event.clientX, event.clientY);
-
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
         safeHaptic("nudge");
       }
     },
-    [safeHaptic, updateLightPosition],
+    [safeHaptic],
   );
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      updateLightPosition(event.clientX, event.clientY);
-
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current
@@ -243,8 +243,8 @@ export function StickerPeelPreview({
 
       const dy = event.clientY - dragStartRef.current.clientY;
 
-      // Upward drag (-dy > 0) increases peel — lift the sticker off the surface
-      const rawDisplacement = clamp(-dy / DRAG_RANGE, 0, 1);
+      // Upward drag (-dy > 0) increases peel — pull sticker up from bottom
+      const rawDisplacement = clamp(-dy / dragRange, 0, 1);
 
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
@@ -264,7 +264,11 @@ export function StickerPeelPreview({
       const vel = velocityTracker.current.get();
       const now = performance.now();
 
-      if (dy < 0 && now - lastMicroRef.current > Math.max(60, 200 - vel.speed * 120)) {
+      if (
+        dy < 0 &&
+        now - lastMicroRef.current >
+          Math.max(60, 200 - vel.speed * 120)
+      ) {
         const intensity = Math.round(clamp(4 + vel.speed * 8, 4, 14));
         safeHaptic([intensity, 20, Math.round(intensity * 0.7)]);
         lastMicroRef.current = now;
@@ -276,7 +280,7 @@ export function StickerPeelPreview({
         lastMicroRef.current = now;
       }
     },
-    [safeHaptic, applyPeelToDOM, updateLightPosition],
+    [safeHaptic, applyPeelToDOM, dragRange],
   );
 
   const handlePointerEnd = useCallback(
@@ -294,7 +298,7 @@ export function StickerPeelPreview({
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      // Upward velocity (negative vy) = increasing peel → positive spring velocity
+      // Upward velocity (negative vy) = increasing peel
       peelSpring.current.velocity = -vel.vy * 0.8;
 
       if (currentPeel > SNAP_THRESHOLD) {
@@ -318,7 +322,21 @@ export function StickerPeelPreview({
   }, []);
 
   const willChange = isActive ? "clip-path, transform" : "auto";
-  const imgClass = "block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]";
+
+  // Pre-compute initial clip values for first paint
+  const initFoldPct = `${(1 - REST_PEEL) * 100}%`;
+  const s = `${-P}px`;
+  const e = `calc(100% + ${P}px)`;
+  const initMainClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${initFoldPct}, ${s} ${initFoldPct})`;
+  const initFlapClip = `polygon(${s} ${initFoldPct}, ${e} ${initFoldPct}, ${e} ${e}, ${s} ${e})`;
+  const initFlapTop = `${(1 - 2 * REST_PEEL) * 100}%`;
+
+  const imgStyle: React.CSSProperties = {
+    width: displaySize,
+    height: displaySize,
+    objectFit: "contain",
+    display: "block",
+  };
 
   /* eslint-disable @next/next/no-img-element */
   return (
@@ -333,7 +351,6 @@ export function StickerPeelPreview({
         onPointerCancel={handlePointerEnd}
       >
         <div
-          ref={stickerContainerRef}
           className="relative"
           style={{
             userSelect: "none",
@@ -341,7 +358,7 @@ export function StickerPeelPreview({
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {/* SVG Filters */}
+          {/* SVG Filters — only stroke + paper fill (cheap feMorphology, no specular) */}
           <svg
             width="0"
             height="0"
@@ -349,20 +366,17 @@ export function StickerPeelPreview({
             aria-hidden
           >
             <defs>
-              {/* White sticker stroke — dilates alpha channel outward,
-                  fills with white, composites original on top.
-                  For opaque images: clean white border.
-                  For transparent PNGs: contour that blobs disconnected parts. */}
+              {/* White sticker stroke — dilates alpha outward, fills white, composites original on top */}
               <filter
                 id={`stroke-${uid}`}
-                x="-5%"
-                y="-5%"
-                width="110%"
-                height="110%"
+                x="-10%"
+                y="-10%"
+                width="120%"
+                height="120%"
               >
                 <feMorphology
                   operator="dilate"
-                  radius={STROKE_W}
+                  radius={strokeW}
                   in="SourceAlpha"
                   result="expanded"
                 />
@@ -380,155 +394,65 @@ export function StickerPeelPreview({
                 />
               </filter>
 
-              {/* Front face specular — subtle vinyl sheen */}
-              <filter id={`pl-${uid}`}>
-                <feGaussianBlur stdDeviation="1" result="blur" />
-                <feSpecularLighting
-                  result="spec"
-                  in="blur"
-                  specularExponent={100}
-                  specularConstant={0.1}
-                  lightingColor="white"
-                >
-                  <fePointLight
-                    ref={pointLightRef}
-                    x={100}
-                    y={100}
-                    z={300}
-                  />
-                </feSpecularLighting>
-                <feComposite
-                  in="spec"
-                  in2="SourceGraphic"
-                  operator="screen"
-                  result="lit"
-                />
-                <feComposite
-                  in="lit"
-                  in2="SourceAlpha"
-                  operator="in"
-                />
-              </filter>
-
-              {/* Back face specular — broad paper sheen */}
-              <filter id={`plf-${uid}`}>
-                <feGaussianBlur stdDeviation="10" result="blur" />
-                <feSpecularLighting
-                  result="spec"
-                  in="blur"
-                  specularExponent={100}
-                  specularConstant={0.7}
-                  lightingColor="white"
-                >
-                  <fePointLight
-                    ref={pointLightFlippedRef}
-                    x={100}
-                    y={100}
-                    z={300}
-                  />
-                </feSpecularLighting>
-                <feComposite
-                  in="spec"
-                  in2="SourceGraphic"
-                  operator="screen"
-                  result="lit"
-                />
-                <feComposite
-                  in="lit"
-                  in2="SourceAlpha"
-                  operator="in"
-                />
-              </filter>
-
-              {/* Drop shadow */}
-              <filter id={`ds-${uid}`}>
-                <feDropShadow
-                  dx={2}
-                  dy={4}
-                  stdDeviation={3}
-                  floodColor="black"
-                  floodOpacity={0.6}
-                />
-              </filter>
-
-              {/* Paper backing fill — dilates to match stroke, fills with paper gray */}
+              {/* Paper backing fill — dilates to match stroke shape, fills paper color */}
               <filter
                 id={`ef-${uid}`}
-                x="-5%"
-                y="-5%"
-                width="110%"
-                height="110%"
+                x="-10%"
+                y="-10%"
+                width="120%"
+                height="120%"
               >
                 <feMorphology
                   operator="dilate"
-                  radius={STROKE_W}
+                  radius={strokeW}
                   in="SourceAlpha"
                   result="shape"
                 />
-                <feFlood floodColor="rgb(179, 179, 179)" result="flood" />
+                <feFlood floodColor="#e8e4dd" result="flood" />
                 <feComposite operator="in" in="flood" in2="shape" />
               </filter>
             </defs>
           </svg>
 
-          {/* Main sticker (front face, clipped to un-peeled portion) */}
+          {/* Main sticker (front face, clipped from top to fold line) */}
           <div
             ref={stickerMainRef}
             style={{
-              clipPath: INIT_MAIN_CLIP,
-              filter: `url(#ds-${uid})`,
+              clipPath: initMainClip,
+              filter: "drop-shadow(1px 3px 5px rgba(0,0,0,0.22))",
               willChange,
             }}
           >
-            <div style={{ filter: `url(#pl-${uid})` }}>
-              <img
-                src={imageUrl}
-                alt="Sticker preview"
-                className={imgClass}
-                style={{ filter: `url(#stroke-${uid})` }}
-                draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
-              />
-            </div>
+            <img
+              src={imageUrl}
+              alt="Sticker preview"
+              style={{
+                ...imgStyle,
+                filter: `url(#stroke-${uid})`,
+              }}
+              draggable={false}
+              onContextMenu={(ev) => ev.preventDefault()}
+            />
           </div>
 
-          {/* Shadow of peeled flap */}
+          {/* Fold shadow — subtle crease at the fold line */}
           <div
+            ref={foldShadowRef}
             style={{
               position: "absolute",
-              top: "1rem",
-              left: "0.5rem",
-              width: "100%",
-              height: "100%",
-              filter: "brightness(0) blur(8px)",
-              opacity: 0.4,
+              left: -P,
+              right: -P,
+              height: 32,
+              top: `calc(${initFoldPct} - 16px)`,
+              background:
+                "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
               pointerEvents: "none",
+              zIndex: 2,
+              opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.6) : 0,
             }}
-          >
-            <div
-              ref={shadowFlapRef}
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                left: 0,
-                top: INIT_FLAP_TOP,
-                clipPath: INIT_FLAP_CLIP,
-                transform: "scaleY(-1)",
-                willChange,
-              }}
-            >
-              <img
-                src={imageUrl}
-                alt=""
-                className={imgClass}
-                style={{ filter: `url(#ef-${uid})` }}
-                draggable={false}
-              />
-            </div>
-          </div>
+          />
 
-          {/* Peeled flap (paper backing, mirrored) */}
+          {/* Peeled flap (paper backing, mirrored at fold line) */}
           <div
             ref={flapRef}
             style={{
@@ -536,21 +460,22 @@ export function StickerPeelPreview({
               width: "100%",
               height: "100%",
               left: 0,
-              top: INIT_FLAP_TOP,
-              clipPath: INIT_FLAP_CLIP,
+              top: initFlapTop,
+              clipPath: initFlapClip,
               transform: "scaleY(-1)",
+              filter: "drop-shadow(0 -2px 5px rgba(0,0,0,0.1))",
               willChange,
             }}
           >
-            <div style={{ filter: `url(#plf-${uid})` }}>
-              <img
-                src={imageUrl}
-                alt=""
-                className={imgClass}
-                style={{ filter: `url(#ef-${uid})` }}
-                draggable={false}
-              />
-            </div>
+            <img
+              src={imageUrl}
+              alt=""
+              style={{
+                ...imgStyle,
+                filter: `url(#ef-${uid})`,
+              }}
+              draggable={false}
+            />
           </div>
         </div>
       </div>

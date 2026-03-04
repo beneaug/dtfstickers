@@ -129,7 +129,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <StickerPeelPreview imageUrl={imageUrl} onSnap={() => safeHaptic("success")} />
+            <StickerPeelPreview imageUrl={imageUrl} size={size} onSnap={() => safeHaptic("success")} />
 
             <OptionsPanel
               size={size}
