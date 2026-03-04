@@ -169,3 +169,143 @@ export function continuousDragAngle(
   if (dist < ANGLE_DEADZONE) return fallback;
   return Math.atan2(dy, dx);
 }
+
+// --- Dynamic Fold-Line Geometry ---
+// Computes clip-path polygons for arbitrary-angle fold lines.
+// The sticker image stays perfectly still — only the clip shapes change.
+
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+
+export interface FoldResult {
+  mainClip: string;   // CSS polygon() for the un-peeled part
+  flapClip: string;   // CSS polygon() for the peeled flap
+  flapTransform: string; // CSS transform to reflect flap across fold line
+  shadowPos: Vec2;    // center point of fold line on sticker
+  shadowAngle: number; // angle of fold line in degrees
+}
+
+/**
+ * Signed distance from point to fold line.
+ * Fold line: nx*(x - px) + ny*(y - py) = 0
+ * Positive = drag side (peeled), Negative = stuck side.
+ */
+function signedDist(pt: Vec2, foldPt: Vec2, nx: number, ny: number): number {
+  return nx * (pt.x - foldPt.x) + ny * (pt.y - foldPt.y);
+}
+
+/**
+ * Intersection of segment (a→b) with fold line.
+ * Returns the parameter t where the crossing happens.
+ */
+function segIntersect(a: Vec2, b: Vec2, foldPt: Vec2, nx: number, ny: number): Vec2 {
+  const da = signedDist(a, foldPt, nx, ny);
+  const db = signedDist(b, foldPt, nx, ny);
+  const t = da / (da - db);
+  return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+}
+
+/**
+ * Sutherland–Hodgman clip: keep the side where signedDist <= 0 (stuck side)
+ * or >= 0 (peeled side) depending on `keepPositive`.
+ */
+function clipPolygon(
+  verts: Vec2[],
+  foldPt: Vec2,
+  nx: number,
+  ny: number,
+  keepPositive: boolean,
+): Vec2[] {
+  const out: Vec2[] = [];
+  const n = verts.length;
+  for (let i = 0; i < n; i++) {
+    const a = verts[i];
+    const b = verts[(i + 1) % n];
+    const da = signedDist(a, foldPt, nx, ny);
+    const db = signedDist(b, foldPt, nx, ny);
+    const aInside = keepPositive ? da >= -0.001 : da <= 0.001;
+    const bInside = keepPositive ? db >= -0.001 : db <= 0.001;
+
+    if (aInside && bInside) {
+      out.push(b);
+    } else if (aInside && !bInside) {
+      out.push(segIntersect(a, b, foldPt, nx, ny));
+    } else if (!aInside && bInside) {
+      out.push(segIntersect(a, b, foldPt, nx, ny));
+      out.push(b);
+    }
+  }
+  return out;
+}
+
+function polyToClipPath(verts: Vec2[], w: number, h: number): string {
+  if (verts.length < 3) return "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
+  const pts = verts.map(
+    (v) => `${((v.x / w) * 100).toFixed(2)}% ${((v.y / h) * 100).toFixed(2)}%`,
+  );
+  return `polygon(${pts.join(", ")})`;
+}
+
+/**
+ * Compute fold line geometry for a given drag angle and peel amount.
+ *
+ * @param angle - drag angle in radians (from atan2(dy, dx))
+ * @param peel - peel amount 0..1
+ * @param w - sticker width in px
+ * @param h - sticker height in px
+ * @returns FoldResult with clip paths and flap transform
+ */
+export function computeFold(angle: number, peel: number, w: number, h: number): FoldResult {
+  // Fold normal points OPPOSITE to drag direction
+  const nx = -Math.cos(angle);
+  const ny = -Math.sin(angle);
+
+  // Compute how far the fold line sweeps across the sticker.
+  // Project all 4 corners onto the fold normal to find min/max.
+  const corners: Vec2[] = [
+    { x: 0, y: 0 },
+    { x: w, y: 0 },
+    { x: w, y: h },
+    { x: 0, y: h },
+  ];
+  const projections = corners.map((c) => nx * c.x + ny * c.y);
+  const dMin = Math.min(...projections);
+  const dMax = Math.max(...projections);
+
+  // D sweeps from dMin (fold at drag-origin edge, peel=0) to dMax (fully peeled)
+  const D = dMin + peel * (dMax - dMin);
+
+  // Fold point: closest point on fold line to origin, along the normal
+  const foldPt: Vec2 = { x: nx * D, y: ny * D };
+
+  // Clip sticker rectangle into two halves
+  const mainVerts = clipPolygon(corners, foldPt, nx, ny, false); // stuck side (d <= 0)
+  const flapVerts = clipPolygon(corners, foldPt, nx, ny, true);  // peeled side (d > 0)
+
+  const mainClip = polyToClipPath(mainVerts, w, h);
+  const flapClip = polyToClipPath(flapVerts, w, h);
+
+  // Reflection transform: reflect across the fold line
+  // Matrix: [[2ny²-1, -2nxny], [-2nxny, 2nx²-1]]
+  // With translate to/from fold point
+  const a = 2 * ny * ny - 1;
+  const b = -2 * nx * ny;
+  const c2 = -2 * nx * ny;
+  const d = 2 * nx * nx - 1;
+  // Translation: T = foldPt - M * foldPt
+  const tx = foldPt.x - (a * foldPt.x + b * foldPt.y);
+  const ty = foldPt.y - (c2 * foldPt.x + d * foldPt.y);
+
+  const flapTransform = `matrix(${a.toFixed(6)}, ${c2.toFixed(6)}, ${b.toFixed(6)}, ${d.toFixed(6)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`;
+
+  // Shadow position: center of fold line segment within sticker bounds
+  // Use the midpoint of the clipped fold intersections
+  const shadowPos: Vec2 = { x: foldPt.x, y: foldPt.y };
+
+  // Shadow angle: perpendicular to fold normal (the fold line direction)
+  const shadowAngle = (Math.atan2(nx, -ny) * 180) / Math.PI;
+
+  return { mainClip, flapClip, flapTransform, shadowPos, shadowAngle };
+}

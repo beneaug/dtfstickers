@@ -22,6 +22,7 @@ import {
   VelocityTracker,
   continuousDragAngle,
   DEFAULT_DRAG_ANGLE,
+  computeFold,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
 import type { StickerSize } from "../lib/pricing";
@@ -36,7 +37,6 @@ interface StickerPeelPreviewProps {
 const REST_PEEL = 0.08;
 const SNAP_THRESHOLD = 0.56;
 const SNAP_FORWARD_TARGET = 0.85;
-const P = 12;
 
 const SIZE_TO_PX: Record<string, number> = {
   "2x2": 150,
@@ -80,9 +80,12 @@ export function StickerPeelPreview({
     return { displayW: Math.round(displaySize * aspect), displayH: displaySize };
   }, [imgDims, displaySize]);
 
+  // Ref for display dims so applyPeelToDOM can read without dep changes
+  const displayDimsRef = useRef({ w: displayW, h: displayH });
+  displayDimsRef.current = { w: displayW, h: displayH };
+
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
-  const stickerWrapperRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
@@ -124,45 +127,35 @@ export function StickerPeelPreview({
     };
   }, []);
 
-  // --- Apply peel to DOM (ref-driven, no React state, no filter recalc) ---
-  // Wrapper rotates to follow drag direction (dynamic fold line).
-  // Images do NOT counter-rotate — the sticker tilts naturally with the peel.
-  // This avoids all non-square image coverage/clipping issues.
+  // --- Apply peel to DOM via computed fold-line polygons ---
+  // The sticker image stays perfectly still. Only clip-path shapes change.
+  // The flap is reflected across the fold line using a CSS matrix transform.
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
     const angle = angleRef.current;
-    const rotation = angle - Math.PI / 2;
+    const { w, h } = displayDimsRef.current;
 
-    const overflow = Math.abs(Math.sin(rotation)) * displaySize * 0.22;
-    const currentP = P + Math.ceil(overflow);
-
-    const foldPct = `${peel * 100}%`;
-    const s = `${-currentP}px`;
-    const e = `calc(100% + ${currentP}px)`;
+    const fold = computeFold(angle, peel, w, h);
 
     if (stickerMainRef.current) {
-      stickerMainRef.current.style.clipPath =
-        `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
+      stickerMainRef.current.style.clipPath = fold.mainClip;
     }
 
     if (flapRef.current) {
-      flapRef.current.style.clipPath =
-        `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
-      flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
+      flapRef.current.style.clipPath = fold.flapClip;
+      flapRef.current.style.transform = fold.flapTransform;
     }
 
     if (foldShadowRef.current) {
-      foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
+      foldShadowRef.current.style.left = `${fold.shadowPos.x}px`;
+      foldShadowRef.current.style.top = `${fold.shadowPos.y}px`;
+      foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
       foldShadowRef.current.style.opacity = String(
         peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
       );
     }
-
-    if (stickerWrapperRef.current) {
-      stickerWrapperRef.current.style.transform = `rotate(${rotation}rad)`;
-    }
-  }, [displaySize]);
+  }, []);
 
   // Reset on image/size change
   useEffect(() => {
@@ -371,19 +364,17 @@ export function StickerPeelPreview({
     };
   }, []);
 
-  // Pre-compute initial clip values for first paint
-  const initFoldPct = `${REST_PEEL * 100}%`;
-  const s = `${-P}px`;
-  const e = `calc(100% + ${P}px)`;
-  const initMainClip = `polygon(${s} ${initFoldPct}, ${e} ${initFoldPct}, ${e} ${e}, ${s} ${e})`;
-  const initFlapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${initFoldPct}, ${s} ${initFoldPct})`;
-  const initFlapTop = `${(2 * REST_PEEL - 1) * 100}%`;
+  // Pre-compute initial fold for first paint
+  const initFold = computeFold(DEFAULT_DRAG_ANGLE, REST_PEEL, displayW, displayH);
 
   const imgStyle: React.CSSProperties = {
     width: displayW,
     height: displayH,
     display: "block",
   };
+
+  // Shadow needs to span the full sticker diagonal
+  const shadowLength = Math.ceil(Math.sqrt(displayW * displayW + displayH * displayH)) + 20;
 
   /* eslint-disable @next/next/no-img-element */
   return (
@@ -404,9 +395,10 @@ export function StickerPeelPreview({
         onPointerCancel={handlePointerEnd}
       >
         <div
-          ref={stickerWrapperRef}
           className="relative"
           style={{
+            width: displayW,
+            height: displayH,
             userSelect: "none",
             WebkitTouchCallout: "none",
             WebkitTapHighlightColor: "transparent",
@@ -466,11 +458,11 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
-          {/* Main sticker — NO filter on clip-path div (perf critical) */}
+          {/* Main sticker — the un-peeled part */}
           <div
             ref={stickerMainRef}
             style={{
-              clipPath: initMainClip,
+              clipPath: initFold.mainClip,
               willChange: "clip-path",
             }}
           >
@@ -492,15 +484,16 @@ export function StickerPeelPreview({
             />
           </div>
 
-          {/* Fold shadow */}
+          {/* Fold shadow — positioned at fold line, rotated to match */}
           <div
             ref={foldShadowRef}
             style={{
               position: "absolute",
-              left: 0,
-              right: 0,
+              width: shadowLength,
               height: 32,
-              top: `calc(${initFoldPct} - 16px)`,
+              left: initFold.shadowPos.x,
+              top: initFold.shadowPos.y,
+              transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
               background:
                 "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
               pointerEvents: "none",
@@ -509,18 +502,18 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap — NO filter on clip-path div (perf critical) */}
+          {/* Peeled flap — reflected across fold line via CSS matrix */}
           <div
             ref={flapRef}
             style={{
               position: "absolute",
-              width: "100%",
-              height: "100%",
+              width: displayW,
+              height: displayH,
               left: 0,
-              top: initFlapTop,
-              clipPath: initFlapClip,
-              transform: "scaleY(-1)",
-              willChange: "clip-path",
+              top: 0,
+              clipPath: initFold.flapClip,
+              transform: initFold.flapTransform,
+              willChange: "clip-path, transform",
             }}
           >
             <img
