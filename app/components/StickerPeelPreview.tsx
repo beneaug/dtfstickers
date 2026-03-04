@@ -19,12 +19,8 @@ import {
 import {
   adhesiveCurve,
   VelocityTracker,
-  computeFoldLine,
-  clipPolygon,
   continuousDragAngle,
   DEFAULT_DRAG_ANGLE,
-  vec2,
-  type Vec2,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
 import type { StickerSize } from "../lib/pricing";
@@ -60,22 +56,6 @@ function getDragRange(displaySize: number): number {
   return Math.max(180, displaySize * 1.2);
 }
 
-/** Convert a polygon (Vec2[]) to a CSS clip-path polygon string using px units */
-function polyToClipPath(poly: Vec2[]): string {
-  if (poly.length === 0) return "polygon(0 0)";
-  return `polygon(${poly.map((p) => `${p.x}px ${p.y}px`).join(", ")})`;
-}
-
-/** Build the extended sticker rectangle (with bleed) for polygon clipping */
-function stickerRect(w: number, h: number): Vec2[] {
-  return [
-    vec2(-P, -P),
-    vec2(w + P, -P),
-    vec2(w + P, h + P),
-    vec2(-P, h + P),
-  ];
-}
-
 export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
@@ -89,9 +69,12 @@ export function StickerPeelPreview({
 
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const stickerWrapperRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
+  const mainImgRef = useRef<HTMLImageElement>(null);
+  const flapImgRef = useRef<HTMLImageElement>(null);
 
   // Interaction refs
   const peelRef = useRef(REST_PEEL);
@@ -146,35 +129,52 @@ export function StickerPeelPreview({
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
     const angle = angleRef.current;
-    const w = displaySize;
-    const h = displaySize;
+    // Rotation that makes the drag direction point "down" (original peel direction)
+    // angle=π/2 (downward) → rotation=0 (no rotation, default)
+    const rotation = angle - Math.PI / 2;
 
-    const fold = computeFoldLine(angle, peel, w, h);
-    const rect = stickerRect(w, h);
-    const { main, flap } = clipPolygon(rect, fold);
-    const foldAngleDeg = (fold.angle * 180) / Math.PI;
+    // Dynamic clip-path bleed: base P + extra for counter-rotated image overflow
+    const overflow = Math.abs(Math.sin(rotation)) * displaySize * 0.22;
+    const currentP = P + Math.ceil(overflow);
 
-    // Main sticker: visible un-peeled region
+    // Top-down peel: fold line at peel*100% from top (in rotated space)
+    const foldPct = `${peel * 100}%`;
+    const s = `${-currentP}px`;
+    const e = `calc(100% + ${currentP}px)`;
+
+    // Main sticker: visible from fold line to bottom
     if (stickerMainRef.current) {
-      stickerMainRef.current.style.clipPath = polyToClipPath(main);
+      stickerMainRef.current.style.clipPath =
+        `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
     }
 
-    // Flap: peeled region, reflected across fold line via CSS transform
+    // Flap: visible from top to fold line, mirrored downward at fold
     if (flapRef.current) {
-      flapRef.current.style.clipPath = polyToClipPath(flap);
-      flapRef.current.style.top = "0";
-      flapRef.current.style.transformOrigin = `${fold.point.x}px ${fold.point.y}px`;
-      flapRef.current.style.transform = `rotate(${-foldAngleDeg}deg) scaleY(-1) rotate(${foldAngleDeg}deg)`;
+      flapRef.current.style.clipPath =
+        `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
+      flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
     }
 
-    // Fold shadow at fold line, rotated to match
+    // Fold shadow at fold line
     if (foldShadowRef.current) {
-      foldShadowRef.current.style.left = `${fold.point.x}px`;
-      foldShadowRef.current.style.top = `${fold.point.y}px`;
-      foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${foldAngleDeg}deg)`;
+      foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
       foldShadowRef.current.style.opacity = String(
         peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
       );
+    }
+
+    // Rotate wrapper so fold line aligns with drag direction
+    if (stickerWrapperRef.current) {
+      stickerWrapperRef.current.style.transform = `rotate(${rotation}rad)`;
+    }
+
+    // Counter-rotate images to keep sticker upright
+    const counterRot = `rotate(${-rotation}rad)`;
+    if (mainImgRef.current) {
+      mainImgRef.current.style.transform = counterRot;
+    }
+    if (flapImgRef.current) {
+      flapImgRef.current.style.transform = counterRot;
     }
   }, [displaySize]);
 
@@ -303,11 +303,12 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Update drag angle continuously (with small deadzone)
+      // Update drag angle continuously (with deadzone)
       angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
 
-      // Peel amount based on distance from start
+      // Peel amount based on distance from drag start (any direction)
       const rawDisplacement = clamp(dist / dragRange, 0, 1);
+
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,
@@ -396,21 +397,13 @@ export function StickerPeelPreview({
 
   const willChange = isActive ? "clip-path, transform" : "auto";
 
-  // Pre-compute initial clip/transform values for first paint
-  const initFold = computeFoldLine(
-    DEFAULT_DRAG_ANGLE,
-    REST_PEEL,
-    displaySize,
-    displaySize,
-  );
-  const initRect = stickerRect(displaySize, displaySize);
-  const initClips = clipPolygon(initRect, initFold);
-  const initMainClip = polyToClipPath(initClips.main);
-  const initFlapClip = polyToClipPath(initClips.flap);
-  const initFoldAngleDeg = (initFold.angle * 180) / Math.PI;
-
-  // Fold shadow width: covers diagonal + bleed
-  const shadowWidth = Math.ceil(displaySize * 1.5) + 2 * P;
+  // Pre-compute initial clip values for first paint
+  const initFoldPct = `${REST_PEEL * 100}%`;
+  const s = `${-P}px`;
+  const e = `calc(100% + ${P}px)`;
+  const initMainClip = `polygon(${s} ${initFoldPct}, ${e} ${initFoldPct}, ${e} ${e}, ${s} ${e})`;
+  const initFlapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${initFoldPct}, ${s} ${initFoldPct})`;
+  const initFlapTop = `${(2 * REST_PEEL - 1) * 100}%`;
 
   const imgStyle: React.CSSProperties = {
     width: displaySize,
@@ -438,6 +431,7 @@ export function StickerPeelPreview({
         onPointerCancel={handlePointerEnd}
       >
         <div
+          ref={stickerWrapperRef}
           className="relative"
           style={{
             userSelect: "none",
@@ -501,7 +495,7 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
-          {/* Main sticker (front face, clipped to un-peeled region) */}
+          {/* Main sticker (front face, clipped from fold to bottom) */}
           <div
             ref={stickerMainRef}
             style={{
@@ -511,6 +505,7 @@ export function StickerPeelPreview({
             }}
           >
             <img
+              ref={mainImgRef}
               src={imageUrl}
               alt="Sticker preview"
               style={{
@@ -527,11 +522,10 @@ export function StickerPeelPreview({
             ref={foldShadowRef}
             style={{
               position: "absolute",
-              width: shadowWidth,
+              left: -P,
+              right: -P,
               height: 32,
-              left: initFold.point.x,
-              top: initFold.point.y,
-              transform: `translate(-50%, -50%) rotate(${initFoldAngleDeg}deg)`,
+              top: `calc(${initFoldPct} - 16px)`,
               background:
                 "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
               pointerEvents: "none",
@@ -540,7 +534,7 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap (paper backing, reflected across fold line) */}
+          {/* Peeled flap (paper backing, mirrored at fold line) */}
           <div
             ref={flapRef}
             style={{
@@ -548,15 +542,15 @@ export function StickerPeelPreview({
               width: "100%",
               height: "100%",
               left: 0,
-              top: 0,
+              top: initFlapTop,
               clipPath: initFlapClip,
-              transformOrigin: `${initFold.point.x}px ${initFold.point.y}px`,
-              transform: `rotate(${-initFoldAngleDeg}deg) scaleY(-1) rotate(${initFoldAngleDeg}deg)`,
+              transform: "scaleY(-1)",
               filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.1))",
               willChange,
             }}
           >
             <img
+              ref={flapImgRef}
               src={imageUrl}
               alt=""
               style={{
