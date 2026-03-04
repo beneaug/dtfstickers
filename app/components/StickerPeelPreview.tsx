@@ -26,11 +26,12 @@ import {
   computeFold,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
-import type { StickerSize } from "../lib/pricing";
+import type { StickerSize, StickerFinish } from "../lib/pricing";
 
 interface StickerPeelPreviewProps {
   imageUrl: string;
   size?: StickerSize;
+  finish?: StickerFinish;
   bgColor?: string;
   onSnap?: () => void;
 }
@@ -62,6 +63,7 @@ function getDragRange(displaySize: number): number {
 export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
+  finish,
   bgColor,
   onSnap,
 }: StickerPeelPreviewProps) {
@@ -488,6 +490,21 @@ export function StickerPeelPreview({
                 if (w && h) setImgDims({ w, h });
               }}
             />
+            {finish === "gloss" && (
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 55%, transparent 70%)",
+                pointerEvents: "none",
+                borderRadius: "inherit",
+              }} />
+            )}
+            {finish === "holographic" && (
+              <div className="holo-overlay" style={{
+                position: "absolute", inset: 0,
+                pointerEvents: "none",
+                borderRadius: "inherit",
+              }} />
+            )}
           </div>
 
           {/* Fold shadow — clipped to sticker bounds */}
@@ -540,6 +557,21 @@ export function StickerPeelPreview({
               }}
               draggable={false}
             />
+            {finish === "gloss" && (
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 55%, transparent 70%)",
+                pointerEvents: "none",
+                borderRadius: "inherit",
+              }} />
+            )}
+            {finish === "holographic" && (
+              <div className="holo-overlay" style={{
+                position: "absolute", inset: 0,
+                pointerEvents: "none",
+                borderRadius: "inherit",
+              }} />
+            )}
           </div>
         </div>
       </div>

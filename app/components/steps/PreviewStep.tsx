@@ -41,6 +41,7 @@ export function PreviewStep({
       <StickerPeelPreview
         imageUrl={imageUrl}
         size={size}
+        finish={finish}
         bgColor={bgColor}
         onSnap={onSnap}
       />

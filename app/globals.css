@@ -256,6 +256,32 @@ main {
 
 /* --- Drop zone --- */
 
+/* --- Finish overlays --- */
+
+.holo-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(255,0,0,0.13),
+    rgba(255,165,0,0.13),
+    rgba(255,255,0,0.13),
+    rgba(0,255,0,0.13),
+    rgba(0,150,255,0.13),
+    rgba(128,0,255,0.13),
+    rgba(255,0,0,0.13)
+  );
+  mix-blend-mode: color;
+  background-size: 200% 200%;
+  animation: holo-shift 3s ease-in-out infinite;
+}
+
+@keyframes holo-shift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* --- Drop zone --- */
+
 .drop-zone {
   border: 2px dashed var(--line);
   border-radius: 1rem;
