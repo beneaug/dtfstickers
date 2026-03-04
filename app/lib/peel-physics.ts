@@ -127,19 +127,26 @@ export function detectCorner(
   }
 }
 
+// --- Peel Direction (CSS 3D strip approach) ---
+
+export interface PeelDirection {
+  corner: PeelCorner;
+  sweepSign: number; // +1 = fold sweeps top→bottom, -1 = bottom→top
+  originY: "top" | "bottom";
+}
+
 /**
- * Convert a peel corner to the angle used by the vertex shader.
- * 0 = top-right corner peel (default).
+ * Convert a peel corner to strip peel direction parameters.
+ * Top corners: peel folds downward (sweepSign +1, strips anchor at bottom).
+ * Bottom corners: peel folds upward (sweepSign -1, strips anchor at top).
  */
-export function cornerToShaderAngle(corner: PeelCorner): number {
+export function cornerToPeelDirection(corner: PeelCorner): PeelDirection {
   switch (corner) {
     case "top-right":
-      return 0;
     case "top-left":
-      return Math.PI / 2;
-    case "bottom-left":
-      return Math.PI;
+      return { corner, sweepSign: 1, originY: "bottom" };
     case "bottom-right":
-      return (3 * Math.PI) / 2;
+    case "bottom-left":
+      return { corner, sweepSign: -1, originY: "top" };
   }
 }
