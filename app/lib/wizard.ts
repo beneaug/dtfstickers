@@ -1,4 +1,4 @@
-export const WIZARD_STEPS = ["upload", "preview", "customize", "checkout"] as const;
+export const WIZARD_STEPS = ["upload", "preview", "checkout"] as const;
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
 export interface StepMeta {
@@ -8,8 +8,7 @@ export interface StepMeta {
 
 export const STEP_META: Record<WizardStep, StepMeta> = {
   upload: { label: "Upload", shortLabel: "Upload" },
-  preview: { label: "Preview", shortLabel: "Preview" },
-  customize: { label: "Customize", shortLabel: "Options" },
+  preview: { label: "Preview & Order", shortLabel: "Order" },
   checkout: { label: "Checkout", shortLabel: "Pay" },
 };
 

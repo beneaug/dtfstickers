@@ -34,6 +34,7 @@ interface StickerPeelPreviewProps {
 
 const REST_PEEL = 0.08;
 const SNAP_THRESHOLD = 0.56;
+const SNAP_FORWARD_TARGET = 0.85; // Cap below 1.0 so sticker stays visible
 const P = 12; // px — clip-path bleed so SVG stroke filter isn't clipped
 
 // Size in inches → display pixels
@@ -85,6 +86,7 @@ export function StickerPeelPreview({
   const dragStartRef = useRef<{ clientX: number; clientY: number } | null>(
     null,
   );
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
@@ -203,7 +205,11 @@ export function StickerPeelPreview({
   // --- Spring Animation Loop ---
 
   const runSpringAnimation = useCallback(
-    (targetPeel: number, config: typeof SPRING_SNAP_BACK) => {
+    (
+      targetPeel: number,
+      config: typeof SPRING_SNAP_BACK,
+      onSettle?: () => void,
+    ) => {
       if (animatingRef.current) return;
       animatingRef.current = true;
       springConfigRef.current = config;
@@ -257,9 +263,7 @@ export function StickerPeelPreview({
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
-          // Reset angle to default when spring settles
-          angleRef.current = DEFAULT_DRAG_ANGLE;
-          applyPeelToDOM();
+          onSettle?.();
           return;
         }
 
@@ -281,6 +285,12 @@ export function StickerPeelPreview({
       activePointerRef.current = event.pointerId;
       animatingRef.current = false;
       snappedRef.current = false;
+
+      // Cancel any pending auto-reset
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+        resetTimeoutRef.current = null;
+      }
       adhesiveBreakRef.current = false;
       velocityTracker.current.reset();
 
@@ -390,10 +400,21 @@ export function StickerPeelPreview({
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
-        runSpringAnimation(1.0, SPRING_SNAP_FORWARD);
+        runSpringAnimation(SNAP_FORWARD_TARGET, SPRING_SNAP_FORWARD, () => {
+          // Pause at peeled state, then auto-spring back to rest
+          resetTimeoutRef.current = setTimeout(() => {
+            resetTimeoutRef.current = null;
+            angleRef.current = DEFAULT_DRAG_ANGLE;
+            applyPeelToDOM();
+            runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK);
+          }, 600);
+        });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK);
+        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+          angleRef.current = DEFAULT_DRAG_ANGLE;
+          applyPeelToDOM();
+        });
       }
 
       adhesiveBreakRef.current = false;
@@ -404,6 +425,9 @@ export function StickerPeelPreview({
   useEffect(() => {
     return () => {
       animatingRef.current = false;
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
     };
   }, []);
 

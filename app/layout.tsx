@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
 import "./globals.css";
-
-const sans = Nunito({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["300", "400", "500", "600"],
-});
 
 export const metadata: Metadata = {
   title: "12ozsticke.rs | Premium Custom Stickers",
@@ -19,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={sans.variable}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

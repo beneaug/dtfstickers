@@ -50,7 +50,7 @@ export function CheckoutStep({
     return (
       <section className="panel space-y-4 p-5 sm:p-6">
         <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order confirmed</p>
-        <h3 className="text-3xl font-medium text-[var(--text)]">You&apos;re set.</h3>
+        <h3 className="text-3xl font-bold tracking-[-0.02em] text-[var(--text)]">You&apos;re set.</h3>
         <div className="panel-soft p-4 text-sm text-muted">
           <p className="mb-1 text-[var(--text)]">{itemSummary}</p>
           <p className="mb-1">Order ID: {orderId}</p>
@@ -69,7 +69,7 @@ export function CheckoutStep({
       <form className="space-y-3.5" onSubmit={submitCheckout}>
         <div className="mb-1">
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Checkout</p>
-          <h3 className="text-2xl font-medium text-[var(--text)]">Almost there</h3>
+          <h3 className="text-2xl font-bold tracking-[-0.02em] text-[var(--text)]">Almost there</h3>
         </div>
 
         <div className="panel-soft p-4 text-sm text-muted">

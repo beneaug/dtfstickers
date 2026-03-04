@@ -61,7 +61,7 @@ export function OptionsPanel({
       <div className="space-y-5">
         <header>
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order</p>
-          <h2 className="mt-1 text-[1.35rem] font-medium leading-tight">Quick options</h2>
+          <h2 className="mt-1 text-[1.35rem] font-bold leading-tight tracking-[-0.01em]">Quick options</h2>
         </header>
 
         <section className="space-y-2">
@@ -115,7 +115,7 @@ export function OptionsPanel({
             <span>Shipping</span>
             <span>{pricing.shipping === 0 ? "Free" : formatCurrency(pricing.shipping)}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-[var(--line)] pt-2 font-medium text-[var(--text)]">
+          <div className="flex items-center justify-between border-t border-[var(--line)] pt-2 font-bold text-[var(--text)]">
             <span>Total</span>
             <span>{formatCurrency(pricing.total)}</span>
           </div>
