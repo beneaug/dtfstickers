@@ -22,6 +22,7 @@ import {
   VelocityTracker,
   continuousDragAngle,
   DEFAULT_DRAG_ANGLE,
+  lerpAngle,
   computeFold,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
@@ -57,7 +58,6 @@ function getDragRange(displaySize: number): number {
   return Math.max(220, displaySize * 1.6);
 }
 
-const ANGLE_LOCK_DIST = 20; // px before locking drag direction
 
 export function StickerPeelPreview({
   imageUrl,
@@ -103,10 +103,6 @@ export function StickerPeelPreview({
   );
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafPendingRef = useRef(false);
-  const angleLockRef = useRef<{ locked: boolean; angle: number }>({
-    locked: false,
-    angle: DEFAULT_DRAG_ANGLE,
-  });
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
@@ -252,7 +248,6 @@ export function StickerPeelPreview({
         clientX: event.clientX,
         clientY: event.clientY,
       };
-      angleLockRef.current = { locked: false, angle: DEFAULT_DRAG_ANGLE };
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
@@ -284,22 +279,13 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Lock drag angle after initial movement — prevents jitter
-      if (!angleLockRef.current.locked && dist >= ANGLE_LOCK_DIST) {
-        angleLockRef.current = { locked: true, angle: Math.atan2(dy, dx) };
-      }
+      // Smooth angle blending — fluid direction changes, no jitter
+      const rawAngle = continuousDragAngle(dx, dy, angleRef.current);
+      // Blend more aggressively when further from start (committed movement)
+      const blend = clamp((dist - 8) / 80, 0, 0.25);
+      angleRef.current = lerpAngle(angleRef.current, rawAngle, blend);
 
-      if (angleLockRef.current.locked) {
-        angleRef.current = angleLockRef.current.angle;
-      }
-
-      // Project displacement onto locked direction for deliberate feel
-      const a = angleRef.current;
-      const projDist = angleLockRef.current.locked
-        ? Math.max(0, dx * Math.cos(a) + dy * Math.sin(a))
-        : dist;
-
-      const rawDisplacement = clamp(projDist / dragRange, 0, 1);
+      const rawDisplacement = clamp(dist / dragRange, 0, 1);
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,

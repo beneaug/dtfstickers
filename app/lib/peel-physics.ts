@@ -170,6 +170,16 @@ export function continuousDragAngle(
   return Math.atan2(dy, dx);
 }
 
+/**
+ * Lerp between two angles along the shortest arc.
+ */
+export function lerpAngle(from: number, to: number, t: number): number {
+  let diff = to - from;
+  if (diff > Math.PI) diff -= 2 * Math.PI;
+  if (diff < -Math.PI) diff += 2 * Math.PI;
+  return from + diff * t;
+}
+
 // --- Dynamic Fold-Line Geometry ---
 // Computes clip-path polygons for arbitrary-angle fold lines.
 // The sticker image stays perfectly still — only the clip shapes change.
