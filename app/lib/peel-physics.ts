@@ -274,10 +274,10 @@ export function computeFold(angle: number, peel: number, w: number, h: number): 
   const dMin = Math.min(...projections);
   const dMax = Math.max(...projections);
 
-  // D sweeps from dMin (fold at drag-origin edge, peel=0) to dMax (fully peeled)
-  const D = dMin + peel * (dMax - dMin);
+  // D sweeps from dMax (fold at drag-origin edge, peel=0) toward dMin (fully peeled)
+  const D = dMax - peel * (dMax - dMin);
 
-  // Fold point: closest point on fold line to origin, along the normal
+  // Fold point: closest point on fold line to coordinate origin
   const foldPt: Vec2 = { x: nx * D, y: ny * D };
 
   // Clip sticker rectangle into two halves
@@ -288,21 +288,21 @@ export function computeFold(angle: number, peel: number, w: number, h: number): 
   const flapClip = polyToClipPath(flapVerts, w, h);
 
   // Reflection transform: reflect across the fold line
-  // Matrix: [[2ny²-1, -2nxny], [-2nxny, 2nx²-1]]
-  // With translate to/from fold point
+  // CSS matrix(a, b, c, d, tx, ty) with transformOrigin "0 0"
   const a = 2 * ny * ny - 1;
   const b = -2 * nx * ny;
-  const c2 = -2 * nx * ny;
-  const d = 2 * nx * nx - 1;
+  const d2 = 2 * nx * nx - 1;
   // Translation: T = foldPt - M * foldPt
   const tx = foldPt.x - (a * foldPt.x + b * foldPt.y);
-  const ty = foldPt.y - (c2 * foldPt.x + d * foldPt.y);
+  const ty = foldPt.y - (b * foldPt.x + d2 * foldPt.y);
 
-  const flapTransform = `matrix(${a.toFixed(6)}, ${c2.toFixed(6)}, ${b.toFixed(6)}, ${d.toFixed(6)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`;
+  const flapTransform = `matrix(${a.toFixed(6)}, ${b.toFixed(6)}, ${b.toFixed(6)}, ${d2.toFixed(6)}, ${tx.toFixed(2)}, ${ty.toFixed(2)})`;
 
-  // Shadow position: center of fold line segment within sticker bounds
-  // Use the midpoint of the clipped fold intersections
-  const shadowPos: Vec2 = { x: foldPt.x, y: foldPt.y };
+  // Shadow position: project sticker center onto the fold line
+  const cx = w / 2;
+  const cy = h / 2;
+  const sd = signedDist({ x: cx, y: cy }, foldPt, nx, ny);
+  const shadowPos: Vec2 = { x: cx - sd * nx, y: cy - sd * ny };
 
   // Shadow angle: perpendicular to fold normal (the fold line direction)
   const shadowAngle = (Math.atan2(nx, -ny) * 180) / Math.PI;

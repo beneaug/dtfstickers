@@ -513,6 +513,7 @@ export function StickerPeelPreview({
               top: 0,
               clipPath: initFold.flapClip,
               transform: initFold.flapTransform,
+              transformOrigin: "0 0",
               willChange: "clip-path, transform",
             }}
           >
