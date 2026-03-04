@@ -27,13 +27,14 @@ const REST_PEEL = 0.1;
 const SNAP_THRESHOLD = 0.56;
 const DRAG_RANGE = 280; // px of vertical drag for full peel
 const P = 10; // px — clip-path bleed for filter overflow
+const STROKE_W = 5; // px — white sticker stroke width
 
 // Pre-compute initial clip-path values for REST_PEEL to avoid flash
 const INIT_PEEL_PCT = `${REST_PEEL * 100}%`;
-const S = `${-P}px`;
-const E = `calc(100% + ${P}px)`;
-const INIT_MAIN_CLIP = `polygon(${S} ${INIT_PEEL_PCT}, ${E} ${INIT_PEEL_PCT}, ${E} ${E}, ${S} ${E})`;
-const INIT_FLAP_CLIP = `polygon(${S} ${S}, ${E} ${S}, ${E} ${INIT_PEEL_PCT}, ${S} ${INIT_PEEL_PCT})`;
+const SV = `${-P}px`;
+const EV = `calc(100% + ${P}px)`;
+const INIT_MAIN_CLIP = `polygon(${SV} ${INIT_PEEL_PCT}, ${EV} ${INIT_PEEL_PCT}, ${EV} ${EV}, ${SV} ${EV})`;
+const INIT_FLAP_CLIP = `polygon(${SV} ${SV}, ${EV} ${SV}, ${EV} ${INIT_PEEL_PCT}, ${SV} ${INIT_PEEL_PCT})`;
 const INIT_FLAP_TOP = `calc(-100% + ${REST_PEEL * 200}% - 1px)`;
 
 export function StickerPeelPreview({
@@ -242,8 +243,8 @@ export function StickerPeelPreview({
 
       const dy = event.clientY - dragStartRef.current.clientY;
 
-      // Downward drag (+dy) increases peel
-      const rawDisplacement = clamp(dy / DRAG_RANGE, 0, 1);
+      // Upward drag (-dy > 0) increases peel — lift the sticker off the surface
+      const rawDisplacement = clamp(-dy / DRAG_RANGE, 0, 1);
 
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
@@ -263,14 +264,12 @@ export function StickerPeelPreview({
       const vel = velocityTracker.current.get();
       const now = performance.now();
 
-      // Continuous peel texture — speed-based micro-ticks
-      if (dy > 0 && now - lastMicroRef.current > Math.max(60, 200 - vel.speed * 120)) {
+      if (dy < 0 && now - lastMicroRef.current > Math.max(60, 200 - vel.speed * 120)) {
         const intensity = Math.round(clamp(4 + vel.speed * 8, 4, 14));
         safeHaptic([intensity, 20, Math.round(intensity * 0.7)]);
         lastMicroRef.current = now;
       }
 
-      // High-peel resistance buzz
       if (peelAmount > 0.7 && now - lastMicroRef.current > 40) {
         const buzzIntensity = Math.round(((peelAmount - 0.7) / 0.3) * 8);
         if (buzzIntensity > 1) safeHaptic([buzzIntensity]);
@@ -295,8 +294,8 @@ export function StickerPeelPreview({
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      // Inject gesture velocity into spring (downward = positive vy = increasing peel)
-      peelSpring.current.velocity = vel.vy * 0.8;
+      // Upward velocity (negative vy) = increasing peel → positive spring velocity
+      peelSpring.current.velocity = -vel.vy * 0.8;
 
       if (currentPeel > SNAP_THRESHOLD) {
         safeHaptic("success");
@@ -319,6 +318,7 @@ export function StickerPeelPreview({
   }, []);
 
   const willChange = isActive ? "clip-path, transform" : "auto";
+  const imgClass = "block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]";
 
   /* eslint-disable @next/next/no-img-element */
   return (
@@ -349,7 +349,38 @@ export function StickerPeelPreview({
             aria-hidden
           >
             <defs>
-              {/* Front face — subtle vinyl sheen */}
+              {/* White sticker stroke — dilates alpha channel outward,
+                  fills with white, composites original on top.
+                  For opaque images: clean white border.
+                  For transparent PNGs: contour that blobs disconnected parts. */}
+              <filter
+                id={`stroke-${uid}`}
+                x="-5%"
+                y="-5%"
+                width="110%"
+                height="110%"
+              >
+                <feMorphology
+                  operator="dilate"
+                  radius={STROKE_W}
+                  in="SourceAlpha"
+                  result="expanded"
+                />
+                <feFlood floodColor="white" result="white" />
+                <feComposite
+                  operator="in"
+                  in="white"
+                  in2="expanded"
+                  result="whiteStroke"
+                />
+                <feComposite
+                  operator="over"
+                  in="SourceGraphic"
+                  in2="whiteStroke"
+                />
+              </filter>
+
+              {/* Front face specular — subtle vinyl sheen */}
               <filter id={`pl-${uid}`}>
                 <feGaussianBlur stdDeviation="1" result="blur" />
                 <feSpecularLighting
@@ -379,7 +410,7 @@ export function StickerPeelPreview({
                 />
               </filter>
 
-              {/* Back face — broad paper sheen */}
+              {/* Back face specular — broad paper sheen */}
               <filter id={`plf-${uid}`}>
                 <feGaussianBlur stdDeviation="10" result="blur" />
                 <feSpecularLighting
@@ -420,9 +451,20 @@ export function StickerPeelPreview({
                 />
               </filter>
 
-              {/* Paper backing fill */}
-              <filter id={`ef-${uid}`}>
-                <feOffset dx={0} dy={0} in="SourceAlpha" result="shape" />
+              {/* Paper backing fill — dilates to match stroke, fills with paper gray */}
+              <filter
+                id={`ef-${uid}`}
+                x="-5%"
+                y="-5%"
+                width="110%"
+                height="110%"
+              >
+                <feMorphology
+                  operator="dilate"
+                  radius={STROKE_W}
+                  in="SourceAlpha"
+                  result="shape"
+                />
                 <feFlood floodColor="rgb(179, 179, 179)" result="flood" />
                 <feComposite operator="in" in="flood" in2="shape" />
               </filter>
@@ -442,7 +484,8 @@ export function StickerPeelPreview({
               <img
                 src={imageUrl}
                 alt="Sticker preview"
-                className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                className={imgClass}
+                style={{ filter: `url(#stroke-${uid})` }}
                 draggable={false}
                 onContextMenu={(e) => e.preventDefault()}
               />
@@ -478,7 +521,7 @@ export function StickerPeelPreview({
               <img
                 src={imageUrl}
                 alt=""
-                className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                className={imgClass}
                 style={{ filter: `url(#ef-${uid})` }}
                 draggable={false}
               />
@@ -503,7 +546,7 @@ export function StickerPeelPreview({
               <img
                 src={imageUrl}
                 alt=""
-                className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                className={imgClass}
                 style={{ filter: `url(#ef-${uid})` }}
                 draggable={false}
               />
@@ -513,7 +556,7 @@ export function StickerPeelPreview({
       </div>
 
       <p className="absolute bottom-3 left-0 w-full text-center text-[11px] uppercase tracking-[0.08em] text-muted">
-        Pull down to peel
+        Pull up to peel
       </p>
     </div>
   );
