@@ -20,8 +20,6 @@ import {
 import {
   adhesiveCurve,
   VelocityTracker,
-  continuousDragAngle,
-  DEFAULT_DRAG_ANGLE,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
 import type { StickerSize } from "../lib/pricing";
@@ -80,23 +78,14 @@ export function StickerPeelPreview({
     return { displayW: Math.round(displaySize * aspect), displayH: displaySize };
   }, [imgDims, displaySize]);
 
-  // Keep display dims in a ref so applyPeelToDOM can read latest values
-  // without needing them in its dependency array (avoids reset-loop)
-  const displayDimsRef = useRef({ w: displaySize, h: displaySize });
-  displayDimsRef.current = { w: displayW, h: displayH };
-
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
-  const stickerWrapperRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
-  const mainImgRef = useRef<HTMLImageElement>(null);
-  const flapImgRef = useRef<HTMLImageElement>(null);
 
   // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
-  const angleRef = useRef(DEFAULT_DRAG_ANGLE);
   const activePointerRef = useRef<number | null>(null);
   const velocityTracker = useRef(new VelocityTracker());
   const snappedRef = useRef(false);
@@ -143,20 +132,16 @@ export function StickerPeelPreview({
   }, []);
 
   // --- Apply peel to DOM (ref-driven, no React state, no filter recalc) ---
+  // Vertical-only peel — no wrapper rotation, no counter-rotation.
+  // Works reliably with any aspect ratio on all devices.
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
-    const angle = angleRef.current;
-    const rotation = angle - Math.PI / 2;
-
-    const overflow = Math.abs(Math.sin(rotation)) * displaySize * 0.22;
-    const currentP = P + Math.ceil(overflow);
 
     const foldPct = `${peel * 100}%`;
-    const s = `${-currentP}px`;
-    const e = `calc(100% + ${currentP}px)`;
+    const s = `${-P}px`;
+    const e = `calc(100% + ${P}px)`;
 
-    // Clip-path updates only — no filter changes (perf critical on mobile)
     if (stickerMainRef.current) {
       stickerMainRef.current.style.clipPath =
         `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
@@ -174,31 +159,12 @@ export function StickerPeelPreview({
         peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
       );
     }
-
-    if (stickerWrapperRef.current) {
-      stickerWrapperRef.current.style.transform = `rotate(${rotation}rad)`;
-    }
-
-    // Counter-rotate images to stay upright, with coverage scale so
-    // non-square images always fill the clip area at any peel angle.
-    // Formula: scale = cos|θ| + (maxDim/minDim) * sin|θ|
-    const { w: dw, h: dh } = displayDimsRef.current;
-    const absRot = Math.abs(rotation);
-    const cs = Math.cos(absRot);
-    const sn = Math.sin(absRot);
-    const ar = dw === dh ? 1 : Math.max(dw, dh) / Math.min(dw, dh);
-    const coverScale = cs + ar * sn;
-
-    const counterTransform = `rotate(${-rotation}rad) scale(${coverScale})`;
-    if (mainImgRef.current) mainImgRef.current.style.transform = counterTransform;
-    if (flapImgRef.current) flapImgRef.current.style.transform = counterTransform;
-  }, [displaySize]);
+  }, []);
 
   // Reset on image/size change
   useEffect(() => {
     setImgDims(null);
     peelRef.current = REST_PEEL;
-    angleRef.current = DEFAULT_DRAG_ANGLE;
     peelSpring.current = { value: REST_PEEL, velocity: 0 };
     snappedRef.current = false;
     firstPeelRef.current = false;
@@ -310,11 +276,9 @@ export function StickerPeelPreview({
       event.preventDefault();
       velocityTracker.current.push(event.clientX, event.clientY);
 
-      const dx = event.clientX - dragStartRef.current.clientX;
       const dy = event.clientY - dragStartRef.current.clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
+      // Only downward drag peels; upward drag has no effect
+      const dist = Math.max(0, dy);
 
       const rawDisplacement = clamp(dist / dragRange, 0, 1);
       const peelAmount = clamp(
@@ -354,12 +318,11 @@ export function StickerPeelPreview({
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      let springVel = vel.speed * 0.8;
+      // Use vertical velocity for spring
+      let springVel = Math.abs(vel.vy) * 0.8;
       if (dragStartRef.current) {
-        const dx = event.clientX - dragStartRef.current.clientX;
         const dy = event.clientY - dragStartRef.current.clientY;
-        const radialDot = vel.vx * dx + vel.vy * dy;
-        if (radialDot < 0) springVel = -springVel;
+        if (dy < 0) springVel = -springVel;
       }
       peelSpring.current.velocity = springVel;
 
@@ -373,23 +336,18 @@ export function StickerPeelPreview({
         runSpringAnimation(SNAP_FORWARD_TARGET, SPRING_SNAP_FORWARD, () => {
           resetTimeoutRef.current = setTimeout(() => {
             resetTimeoutRef.current = null;
-            angleRef.current = DEFAULT_DRAG_ANGLE;
-            applyPeelToDOM();
             runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK);
           }, 600);
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
         safeHaptic("light");
-        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-          angleRef.current = DEFAULT_DRAG_ANGLE;
-          applyPeelToDOM();
-        });
+        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK);
       }
 
       adhesiveBreakRef.current = false;
     },
-    [safeHaptic, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
+    [safeHaptic, runSpringAnimation, onSnap, getBurstPos],
   );
 
   useEffect(() => {
@@ -434,7 +392,6 @@ export function StickerPeelPreview({
         onPointerCancel={handlePointerEnd}
       >
         <div
-          ref={stickerWrapperRef}
           className="relative"
           style={{
             contain: "layout style paint",
@@ -507,13 +464,11 @@ export function StickerPeelPreview({
             }}
           >
             <img
-              ref={mainImgRef}
               src={imageUrl}
               alt="Sticker preview"
               style={{
                 ...imgStyle,
                 filter: `url(#stroke-${uid})`,
-                willChange: "transform",
               }}
               draggable={false}
               onContextMenu={(ev) => ev.preventDefault()}
@@ -559,13 +514,11 @@ export function StickerPeelPreview({
             }}
           >
             <img
-              ref={flapImgRef}
               src={imageUrl}
               alt=""
               style={{
                 ...imgStyle,
                 filter: `url(#ef-${uid})`,
-                willChange: "transform",
               }}
               draggable={false}
             />
