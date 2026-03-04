@@ -9,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useWebHaptics } from "web-haptics/react";
-import { clamp, lerp } from "../lib/utils";
+import { clamp } from "../lib/utils";
 import {
   stepSpring,
   SPRING_SNAP_BACK,
@@ -21,10 +21,7 @@ import {
   adhesiveCurve,
   VelocityTracker,
   classifyGesture,
-  detectCorner,
-  cornerToPeelDirection,
   type GestureMode,
-  type PeelDirection,
 } from "../lib/peel-physics";
 
 interface StickerPeelPreviewProps {
@@ -34,30 +31,35 @@ interface StickerPeelPreviewProps {
 
 const REST_PEEL = 0.1;
 const SNAP_THRESHOLD = 0.56;
-const NUM_STRIPS = 16;
+const PEEL_ANGLE = Math.PI / 2; // upward peel
+const P = 10; // px — clip-path bleed for filter overflow
+
+// Pre-compute initial clip-path values for REST_PEEL to avoid flash
+const INIT_PEEL_PCT = `${REST_PEEL * 100}%`;
+const S = `${-P}px`;
+const E = `calc(100% + ${P}px)`;
+const INIT_MAIN_CLIP = `polygon(${S} ${INIT_PEEL_PCT}, ${E} ${INIT_PEEL_PCT}, ${E} ${E}, ${S} ${E})`;
+const INIT_FLAP_CLIP = `polygon(${S} ${S}, ${E} ${S}, ${E} ${INIT_PEEL_PCT}, ${S} ${INIT_PEEL_PCT})`;
+const INIT_FLAP_TOP = `calc(-100% + ${REST_PEEL * 200}% - 1px)`;
 
 export function StickerPeelPreview({
   imageUrl,
   onSnap,
 }: StickerPeelPreviewProps) {
-  const filterId = useId();
-  const sheenId = `vinyl-sheen-${filterId.replace(/:/g, "")}`;
+  const uid = useId().replace(/:/g, "");
 
+  // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const dropShadowRef = useRef<HTMLDivElement>(null);
-  const foldShadowRef = useRef<HTMLDivElement>(null);
-  const stripAssemblyRef = useRef<HTMLDivElement>(null);
-  const sheenLightRef = useRef<SVGFEPointLightElement>(null);
-  const stripRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const stickerMainRef = useRef<HTMLDivElement>(null);
+  const flapRef = useRef<HTMLDivElement>(null);
+  const shadowFlapRef = useRef<HTMLDivElement>(null);
+  const pointLightRef = useRef<SVGFEPointLightElement>(null);
+  const pointLightFlippedRef = useRef<SVGFEPointLightElement>(null);
+  const stickerContainerRef = useRef<HTMLDivElement>(null);
 
-  // Interaction state — all refs for zero-rerender updates
+  // Interaction refs
   const peelRef = useRef(REST_PEEL);
-  const peelDirRef = useRef<PeelDirection>({
-    corner: "top-right",
-    sweepSign: 1,
-    originY: "bottom",
-  });
   const positionRef = useRef({ x: 0, y: 0 });
   const activePointerRef = useRef<number | null>(null);
   const gestureRef = useRef<GestureMode>("pending");
@@ -70,7 +72,6 @@ export function StickerPeelPreview({
     clientY: number;
     posX: number;
     posY: number;
-    peelGestureAngle: number;
   } | null>(null);
 
   // Spring states
@@ -80,9 +81,9 @@ export function StickerPeelPreview({
   const animatingRef = useRef(false);
   const springConfigRef = useRef(SPRING_SNAP_BACK);
 
-  // React state: only for will-change toggle (2 renders per gesture)
   const [isActive, setIsActive] = useState(false);
 
+  // Haptic refs
   const firstPeelRef = useRef(false);
   const lastMicroRef = useRef(0);
   const adhesiveBreakRef = useRef(false);
@@ -102,80 +103,62 @@ export function StickerPeelPreview({
     [isSupported, trigger],
   );
 
-  // --- Apply peel state to DOM (called from rAF or pointer move) ---
+  // --- Apply peel state to DOM (ref-driven, zero rerenders) ---
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
-    const { sweepSign } = peelDirRef.current;
-    const containerEl = stripAssemblyRef.current;
-    if (!containerEl) return;
+    const peelPct = `${peel * 100}%`;
+    const s = `${-P}px`;
+    const e = `calc(100% + ${P}px)`;
 
-    const containerHeight = containerEl.offsetHeight;
-    const stripH = containerHeight / NUM_STRIPS;
-    const cylinderRadius = lerp(50, 28, peel);
-
-    for (let i = 0; i < NUM_STRIPS; i++) {
-      const el = stripRefs.current[i];
-      if (!el) continue;
-
-      const stripCenter = (i + 0.5) / NUM_STRIPS;
-
-      // d > 0 means this strip is past the fold line (should be curled)
-      let d: number;
-      if (sweepSign > 0) {
-        // Top corners: fold sweeps top→bottom, peel from top
-        d = peel - stripCenter;
-      } else {
-        // Bottom corners: fold sweeps bottom→top, peel from bottom
-        d = stripCenter - (1 - peel);
-      }
-
-      if (d <= 0) {
-        // Flat — on the surface
-        el.style.transform = "translateZ(0px)";
-        continue;
-      }
-
-      // Curled strip
-      const distPx = d * containerHeight;
-      const arcAngle = Math.min(distPx / cylinderRadius, Math.PI); // cap at 180°
-      const dy = -distPx + cylinderRadius * Math.sin(arcAngle);
-      const dz = cylinderRadius * (1 - Math.cos(arcAngle));
-      const rotDeg = -(arcAngle * 180) / Math.PI * sweepSign;
-
-      el.style.transform = `translateY(${dy}px) translateZ(${dz}px) rotateX(${rotDeg}deg)`;
+    // Main sticker: visible from peelPct to bottom
+    if (stickerMainRef.current) {
+      stickerMainRef.current.style.clipPath =
+        `polygon(${s} ${peelPct}, ${e} ${peelPct}, ${e} ${e}, ${s} ${e})`;
     }
 
-    // Fold shadow — positioned at the fold line
-    if (foldShadowRef.current) {
-      let foldFraction: number;
-      if (sweepSign > 0) {
-        foldFraction = peel;
-      } else {
-        foldFraction = 1 - peel;
-      }
-      const foldTop = foldFraction * containerHeight - 20; // center the 40px shadow
-      const shadowOpacity = peel > 0.05 ? clamp((peel - 0.05) * 2, 0, 1) : 0;
-      foldShadowRef.current.style.top = `${foldTop}px`;
-      foldShadowRef.current.style.opacity = String(shadowOpacity);
-    }
+    // Flap + shadow flap: visible from top to peelPct, positioned at fold
+    const flapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${peelPct}, ${s} ${peelPct})`;
+    const flapTop = `calc(-100% + ${peel * 200}% - 1px)`;
 
-    // Drop shadow
-    if (dropShadowRef.current) {
-      const shadowOp = clamp(0.22 + peel * 0.25, 0.2, 0.55);
-      dropShadowRef.current.style.opacity = String(shadowOp);
+    if (flapRef.current) {
+      flapRef.current.style.clipPath = flapClip;
+      flapRef.current.style.top = flapTop;
+    }
+    if (shadowFlapRef.current) {
+      shadowFlapRef.current.style.clipPath = flapClip;
+      shadowFlapRef.current.style.top = flapTop;
     }
 
     // Position wrapper
     if (wrapperRef.current) {
       const { x, y } = positionRef.current;
-      wrapperRef.current.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      wrapperRef.current.style.transform =
+        `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
     }
   }, []);
 
-  // Initial apply on mount + image change
+  // --- Light position (tracks pointer for specular) ---
+
+  const updateLightPosition = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = stickerContainerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const rx = clientX - rect.left;
+      const ry = clientY - rect.top;
+      pointLightRef.current?.setAttribute("x", String(rx));
+      pointLightRef.current?.setAttribute("y", String(ry));
+      pointLightFlippedRef.current?.setAttribute("x", String(rx));
+      pointLightFlippedRef.current?.setAttribute(
+        "y",
+        String(rect.height - ry),
+      );
+    },
+    [],
+  );
+
+  // Initial apply
   useEffect(() => {
-    // Small delay to ensure refs are attached
     requestAnimationFrame(() => applyPeelToDOM());
   }, [applyPeelToDOM, imageUrl]);
 
@@ -246,10 +229,9 @@ export function StickerPeelPreview({
           y: posYResult.value,
         };
 
-        // Apply all transforms via refs (no React state)
         applyPeelToDOM();
 
-        // Spring settle vibrations: tap on each bounce peak
+        // Bounce haptics
         const bounceSign = Math.sign(peelResult.velocity);
         if (
           bounceSign !== 0 &&
@@ -295,60 +277,30 @@ export function StickerPeelPreview({
 
       rectRef.current =
         containerRef.current?.getBoundingClientRect() ?? null;
-      const rect = rectRef.current;
 
       dragStartRef.current = {
         clientX: event.clientX,
         clientY: event.clientY,
         posX: positionRef.current.x,
         posY: positionRef.current.y,
-        peelGestureAngle: (3 * Math.PI) / 4,
       };
 
       event.currentTarget.setPointerCapture(event.pointerId);
       setIsActive(true);
 
-      // Detect which corner user grabbed
-      if (rect) {
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const { corner, peelAngle } = detectCorner(
-          event.clientX,
-          event.clientY,
-          cx,
-          cy,
-        );
-        peelDirRef.current = cornerToPeelDirection(corner);
-        dragStartRef.current.peelGestureAngle = peelAngle;
-      }
-
-      // Update SVG light position
-      if (rect && sheenLightRef.current) {
-        const nx = ((event.clientX - rect.left) / rect.width) * 250;
-        const ny = ((event.clientY - rect.top) / rect.height) * 250;
-        sheenLightRef.current.setAttribute("x", String(nx));
-        sheenLightRef.current.setAttribute("y", String(ny));
-      }
+      updateLightPosition(event.clientX, event.clientY);
 
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
         safeHaptic("nudge");
       }
     },
-    [safeHaptic],
+    [safeHaptic, updateLightPosition],
   );
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      const rect = rectRef.current;
-
-      // Always update SVG light
-      if (rect && sheenLightRef.current) {
-        const nx = ((event.clientX - rect.left) / rect.width) * 250;
-        const ny = ((event.clientY - rect.top) / rect.height) * 250;
-        sheenLightRef.current.setAttribute("x", String(nx));
-        sheenLightRef.current.setAttribute("y", String(ny));
-      }
+      updateLightPosition(event.clientX, event.clientY);
 
       if (
         activePointerRef.current !== event.pointerId ||
@@ -362,10 +314,8 @@ export function StickerPeelPreview({
       const dx = event.clientX - dragStartRef.current.clientX;
       const dy = event.clientY - dragStartRef.current.clientY;
 
-      // Classify gesture if still pending
       if (gestureRef.current === "pending") {
-        const peelGestureAngle = dragStartRef.current.peelGestureAngle;
-        gestureRef.current = classifyGesture(dx, dy, peelGestureAngle);
+        gestureRef.current = classifyGesture(dx, dy, PEEL_ANGLE);
       }
 
       if (gestureRef.current === "reposition") {
@@ -377,10 +327,8 @@ export function StickerPeelPreview({
         return;
       }
 
-      // Peel mode — project drag along peel direction
-      const { sweepSign } = peelDirRef.current;
-      // For top corners (sweepSign +1): pulling upward (-dy) peels. For bottom (+dy) peels.
-      const rawDisplacement = clamp((-dy * sweepSign) / 200, 0, 1);
+      // Peel: upward drag (-dy) increases peel
+      const rawDisplacement = clamp(-dy / 200, 0, 1);
       const horizontalTension = clamp(Math.abs(dx) / 400, 0, 0.12);
       const totalRaw = clamp(rawDisplacement + horizontalTension, 0, 1);
 
@@ -391,7 +339,7 @@ export function StickerPeelPreview({
       );
       peelRef.current = peelAmount;
 
-      // Allow some repositioning during peel (reduced)
+      // Slight reposition during peel
       positionRef.current = {
         x: dragStartRef.current.posX + dx * 0.3,
         y: dragStartRef.current.posY + dy * 0.3,
@@ -427,7 +375,7 @@ export function StickerPeelPreview({
         }
       }
     },
-    [safeHaptic, applyPeelToDOM],
+    [safeHaptic, applyPeelToDOM, updateLightPosition],
   );
 
   const handlePointerEnd = useCallback(
@@ -462,72 +410,15 @@ export function StickerPeelPreview({
     [safeHaptic, runSpringAnimation, onSnap],
   );
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       animatingRef.current = false;
     };
   }, []);
 
-  // Build strip elements
-  const strips = [];
-  for (let i = 0; i < NUM_STRIPS; i++) {
-    strips.push(
-      <div
-        key={i}
-        ref={(el) => { stripRefs.current[i] = el; }}
-        style={{
-          position: "absolute",
-          top: `${(i / NUM_STRIPS) * 100}%`,
-          left: 0,
-          width: "100%",
-          height: `${(1 / NUM_STRIPS) * 100 + 0.5}%`, // +0.5% overlap to prevent seams
-          transformStyle: "preserve-3d",
-          WebkitTransformStyle: "preserve-3d",
-          transformOrigin: "center center",
-          willChange: isActive ? "transform" : "auto",
-        }}
-      >
-        {/* Front face — sticker image slice */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: `100% ${NUM_STRIPS * 100}%`,
-            backgroundPosition: `0 ${(i * 100) / (NUM_STRIPS - 1)}%`,
-            backgroundRepeat: "no-repeat",
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            borderRadius:
-              i === 0
-                ? "12px 12px 0 0"
-                : i === NUM_STRIPS - 1
-                  ? "0 0 12px 12px"
-                  : undefined,
-          }}
-        />
-        {/* Back face — paper backing */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "#f5f2eb",
-            transform: "rotateX(180deg)",
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            borderRadius:
-              i === 0
-                ? "12px 12px 0 0"
-                : i === NUM_STRIPS - 1
-                  ? "0 0 12px 12px"
-                  : undefined,
-          }}
-        />
-      </div>,
-    );
-  }
+  const willChange = isActive ? "clip-path, transform" : "auto";
 
+  /* eslint-disable @next/next/no-img-element */
   return (
     <div className="panel relative h-[420px] w-full overflow-hidden p-4 sm:h-[480px] sm:p-5">
       <div
@@ -543,27 +434,18 @@ export function StickerPeelPreview({
         <div
           ref={wrapperRef}
           className="absolute left-1/2 top-1/2"
-          style={{
-            transform: "translate(-50%, -50%)",
-          }}
+          style={{ transform: "translate(-50%, -50%)" }}
         >
-          {/* Drop shadow */}
           <div
-            ref={dropShadowRef}
-            className="pointer-events-none absolute left-8 right-8 top-[calc(100%+8px)] h-8 rounded-full bg-black/20 blur-xl"
-            style={{ opacity: 0.22 }}
-          />
-
-          {/* Perspective container */}
-          <div
-            className="h-[250px] w-[250px] sm:h-[320px] sm:w-[320px]"
+            ref={stickerContainerRef}
+            className="relative"
             style={{
-              perspective: "800px",
-              WebkitPerspective: "800px",
-              overflow: "visible",
+              userSelect: "none",
+              WebkitTouchCallout: "none",
+              WebkitTapHighlightColor: "transparent",
             }}
           >
-            {/* SVG specular filter */}
+            {/* SVG Filters */}
             <svg
               width="0"
               height="0"
@@ -571,70 +453,165 @@ export function StickerPeelPreview({
               aria-hidden
             >
               <defs>
-                <filter id={sheenId} x="0%" y="0%" width="100%" height="100%">
+                {/* Front face — subtle vinyl sheen */}
+                <filter id={`pl-${uid}`}>
+                  <feGaussianBlur stdDeviation="1" result="blur" />
                   <feSpecularLighting
-                    in="SourceAlpha"
-                    specularExponent="20"
-                    specularConstant="0.35"
-                    surfaceScale="3"
-                    result="specular"
+                    result="spec"
+                    in="blur"
+                    specularExponent={100}
+                    specularConstant={0.1}
+                    lightingColor="white"
                   >
                     <fePointLight
-                      ref={sheenLightRef}
-                      x="125"
-                      y="75"
-                      z="180"
+                      ref={pointLightRef}
+                      x={100}
+                      y={100}
+                      z={300}
                     />
                   </feSpecularLighting>
                   <feComposite
-                    in="specular"
-                    in2="SourceAlpha"
-                    operator="in"
-                    result="specular-masked"
+                    in="spec"
+                    in2="SourceGraphic"
+                    operator="screen"
+                    result="lit"
                   />
                   <feComposite
-                    in="SourceGraphic"
-                    in2="specular-masked"
-                    operator="arithmetic"
-                    k1="0"
-                    k2="1"
-                    k3="0.6"
-                    k4="0"
+                    in="lit"
+                    in2="SourceAlpha"
+                    operator="in"
                   />
+                </filter>
+
+                {/* Back face — broad paper sheen */}
+                <filter id={`plf-${uid}`}>
+                  <feGaussianBlur stdDeviation="10" result="blur" />
+                  <feSpecularLighting
+                    result="spec"
+                    in="blur"
+                    specularExponent={100}
+                    specularConstant={0.7}
+                    lightingColor="white"
+                  >
+                    <fePointLight
+                      ref={pointLightFlippedRef}
+                      x={100}
+                      y={100}
+                      z={300}
+                    />
+                  </feSpecularLighting>
+                  <feComposite
+                    in="spec"
+                    in2="SourceGraphic"
+                    operator="screen"
+                    result="lit"
+                  />
+                  <feComposite
+                    in="lit"
+                    in2="SourceAlpha"
+                    operator="in"
+                  />
+                </filter>
+
+                {/* Drop shadow */}
+                <filter id={`ds-${uid}`}>
+                  <feDropShadow
+                    dx={2}
+                    dy={4}
+                    stdDeviation={3}
+                    floodColor="black"
+                    floodOpacity={0.6}
+                  />
+                </filter>
+
+                {/* Paper backing fill */}
+                <filter id={`ef-${uid}`}>
+                  <feOffset dx={0} dy={0} in="SourceAlpha" result="shape" />
+                  <feFlood floodColor="rgb(179, 179, 179)" result="flood" />
+                  <feComposite operator="in" in="flood" in2="shape" />
                 </filter>
               </defs>
             </svg>
 
-            {/* Strip assembly */}
+            {/* Main sticker (front face, clipped to un-peeled portion) */}
             <div
-              ref={stripAssemblyRef}
+              ref={stickerMainRef}
               style={{
-                position: "relative",
-                width: "100%",
-                height: "100%",
-                transformStyle: "preserve-3d",
-                WebkitTransformStyle: "preserve-3d",
-                filter: `url(#${sheenId})`,
+                clipPath: INIT_MAIN_CLIP,
+                filter: `url(#ds-${uid})`,
+                willChange,
               }}
             >
-              {strips}
+              <div style={{ filter: `url(#pl-${uid})` }}>
+                <img
+                  src={imageUrl}
+                  alt="Sticker preview"
+                  className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              </div>
+            </div>
 
-              {/* Fold shadow */}
+            {/* Shadow of peeled flap */}
+            <div
+              style={{
+                position: "absolute",
+                top: "1rem",
+                left: "0.5rem",
+                width: "100%",
+                height: "100%",
+                filter: "brightness(0) blur(8px)",
+                opacity: 0.4,
+                pointerEvents: "none",
+              }}
+            >
               <div
-                ref={foldShadowRef}
+                ref={shadowFlapRef}
                 style={{
                   position: "absolute",
-                  left: 0,
                   width: "100%",
-                  height: "40px",
-                  top: "0px",
-                  opacity: 0,
-                  background:
-                    "linear-gradient(to bottom, transparent, rgba(0,0,0,0.12) 35%, rgba(0,0,0,0.06) 65%, transparent)",
-                  transform: "translateZ(1px)",
-                  pointerEvents: "none",
+                  height: "100%",
+                  left: 0,
+                  top: INIT_FLAP_TOP,
+                  clipPath: INIT_FLAP_CLIP,
+                  transform: "scaleY(-1)",
+                  willChange,
                 }}
-              />
+              >
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                  style={{ filter: `url(#ef-${uid})` }}
+                  draggable={false}
+                />
+              </div>
+            </div>
+
+            {/* Peeled flap (paper backing, mirrored) */}
+            <div
+              ref={flapRef}
+              style={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                left: 0,
+                top: INIT_FLAP_TOP,
+                clipPath: INIT_FLAP_CLIP,
+                transform: "scaleY(-1)",
+                willChange,
+              }}
+            >
+              <div style={{ filter: `url(#plf-${uid})` }}>
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="block h-[250px] w-[250px] object-cover sm:h-[320px] sm:w-[320px]"
+                  style={{ filter: `url(#ef-${uid})` }}
+                  draggable={false}
+                />
+              </div>
             </div>
           </div>
         </div>
