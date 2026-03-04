@@ -5,7 +5,6 @@ import {
   useEffect,
   useId,
   useRef,
-  useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -34,10 +33,9 @@ interface StickerPeelPreviewProps {
 
 const REST_PEEL = 0.08;
 const SNAP_THRESHOLD = 0.56;
-const SNAP_FORWARD_TARGET = 0.85; // Cap below 1.0 so sticker stays visible
-const P = 12; // px — clip-path bleed so SVG stroke filter isn't clipped
+const SNAP_FORWARD_TARGET = 0.85;
+const P = 12;
 
-// Size in inches → display pixels
 const SIZE_TO_PX: Record<string, number> = {
   "2x2": 150,
   "3x3": 210,
@@ -77,7 +75,7 @@ export function StickerPeelPreview({
   const mainImgRef = useRef<HTMLImageElement>(null);
   const flapImgRef = useRef<HTMLImageElement>(null);
 
-  // Interaction refs
+  // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
   const angleRef = useRef(DEFAULT_DRAG_ANGLE);
   const activePointerRef = useRef<number | null>(null);
@@ -87,17 +85,15 @@ export function StickerPeelPreview({
     null,
   );
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafPendingRef = useRef(false);
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
   const animatingRef = useRef(false);
   const springConfigRef = useRef(SPRING_SNAP_BACK);
 
-  const [isActive, setIsActive] = useState(false);
-
   // Haptic refs
   const firstPeelRef = useRef(false);
-  const lastMicroRef = useRef(0);
   const adhesiveBreakRef = useRef(false);
 
   const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
@@ -126,50 +122,32 @@ export function StickerPeelPreview({
     };
   }, []);
 
-  // --- Apply peel state to DOM (ref-driven, zero rerenders) ---
+  // --- Apply peel to DOM (ref-driven, no React state, no filter recalc) ---
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
     const angle = angleRef.current;
-    // Rotation that makes the drag direction point "down" (original peel direction)
-    // angle=π/2 (downward) → rotation=0 (no rotation, default)
     const rotation = angle - Math.PI / 2;
-    const cosR = Math.cos(rotation);
-    const sinR = Math.sin(rotation);
 
-    // Dynamic clip-path bleed: base P + extra for counter-rotated image overflow
     const overflow = Math.abs(Math.sin(rotation)) * displaySize * 0.22;
     const currentP = P + Math.ceil(overflow);
 
-    // Top-down peel: fold line at peel*100% from top (in rotated space)
     const foldPct = `${peel * 100}%`;
     const s = `${-currentP}px`;
     const e = `calc(100% + ${currentP}px)`;
 
-    // Main sticker: visible from fold line to bottom
+    // Clip-path updates only — no filter changes (perf critical on mobile)
     if (stickerMainRef.current) {
       stickerMainRef.current.style.clipPath =
         `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
-      // Counter-rotate shadow so it always falls "down" in screen space
-      const sx = (cosR + 3 * sinR).toFixed(1);
-      const sy = (-sinR + 3 * cosR).toFixed(1);
-      stickerMainRef.current.style.filter =
-        `drop-shadow(${sx}px ${sy}px 5px rgba(0,0,0,0.22))`;
     }
 
-    // Flap: visible from top to fold line, mirrored downward at fold
     if (flapRef.current) {
       flapRef.current.style.clipPath =
         `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
       flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
-      // Counter-rotate flap shadow (accounts for scaleY(-1) on element)
-      const fx = (2 * sinR).toFixed(1);
-      const fy = (2 * cosR).toFixed(1);
-      flapRef.current.style.filter =
-        `drop-shadow(${fx}px ${fy}px 5px rgba(0,0,0,0.1))`;
     }
 
-    // Fold shadow at fold line
     if (foldShadowRef.current) {
       foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
       foldShadowRef.current.style.opacity = String(
@@ -177,19 +155,13 @@ export function StickerPeelPreview({
       );
     }
 
-    // Rotate wrapper so fold line aligns with drag direction
     if (stickerWrapperRef.current) {
       stickerWrapperRef.current.style.transform = `rotate(${rotation}rad)`;
     }
 
-    // Counter-rotate images to keep sticker upright
     const counterRot = `rotate(${-rotation}rad)`;
-    if (mainImgRef.current) {
-      mainImgRef.current.style.transform = counterRot;
-    }
-    if (flapImgRef.current) {
-      flapImgRef.current.style.transform = counterRot;
-    }
+    if (mainImgRef.current) mainImgRef.current.style.transform = counterRot;
+    if (flapImgRef.current) flapImgRef.current.style.transform = counterRot;
   }, [displaySize]);
 
   // Reset on image/size change
@@ -220,7 +192,6 @@ export function StickerPeelPreview({
       };
 
       let lastTime = performance.now();
-      let lastBounceSign = 0;
 
       const tick = (now: number) => {
         const dt = Math.min((now - lastTime) / 1000, 0.033);
@@ -240,27 +211,6 @@ export function StickerPeelPreview({
 
         applyPeelToDOM();
 
-        // Bounce haptics + sparkle
-        const bounceSign = Math.sign(peelResult.velocity);
-        if (
-          bounceSign !== 0 &&
-          bounceSign !== lastBounceSign &&
-          Math.abs(peelResult.velocity) > 0.08
-        ) {
-          const intensity = Math.min(
-            20,
-            Math.round(Math.abs(peelResult.velocity) * 15),
-          );
-          if (intensity > 3) {
-            safeHaptic([intensity]);
-            if (intensity > 8) {
-              const pos = getBurstPos();
-              burst(pos.x, pos.y, ["✨", "💫"], 2);
-            }
-          }
-        }
-        lastBounceSign = bounceSign;
-
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
           onSettle?.();
@@ -272,7 +222,7 @@ export function StickerPeelPreview({
 
       requestAnimationFrame(tick);
     },
-    [safeHaptic, applyPeelToDOM, getBurstPos],
+    [applyPeelToDOM],
   );
 
   // --- Pointer Handlers ---
@@ -286,7 +236,6 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       snappedRef.current = false;
 
-      // Cancel any pending auto-reset
       if (resetTimeoutRef.current) {
         clearTimeout(resetTimeoutRef.current);
         resetTimeoutRef.current = null;
@@ -300,11 +249,10 @@ export function StickerPeelPreview({
       };
 
       event.currentTarget.setPointerCapture(event.pointerId);
-      setIsActive(true);
 
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
-        safeHaptic("nudge");
+        safeHaptic("light");
       }
     },
     [safeHaptic],
@@ -325,12 +273,9 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Update drag angle continuously (with deadzone)
       angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
 
-      // Peel amount based on distance from drag start (any direction)
       const rawDisplacement = clamp(dist / dragRange, 0, 1);
-
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,
@@ -338,36 +283,22 @@ export function StickerPeelPreview({
       );
       peelRef.current = peelAmount;
 
-      applyPeelToDOM();
+      // RAF-throttled DOM update — never apply faster than display refresh
+      if (!rafPendingRef.current) {
+        rafPendingRef.current = true;
+        requestAnimationFrame(() => {
+          rafPendingRef.current = false;
+          applyPeelToDOM();
+        });
+      }
 
-      // --- Haptics ---
+      // Haptics — only at key moments, not continuous
       if (!adhesiveBreakRef.current && peelAmount > 0.18) {
         adhesiveBreakRef.current = true;
-        safeHaptic([35, 20, 20]);
-        const pos = getBurstPos();
-        burst(pos.x, pos.y, ["✨", "⚡️", "💫"], 4);
-      }
-
-      const vel = velocityTracker.current.get();
-      const now = performance.now();
-
-      if (
-        dist > 5 &&
-        now - lastMicroRef.current >
-          Math.max(60, 200 - vel.speed * 120)
-      ) {
-        const intensity = Math.round(clamp(4 + vel.speed * 8, 4, 14));
-        safeHaptic([intensity, 20, Math.round(intensity * 0.7)]);
-        lastMicroRef.current = now;
-      }
-
-      if (peelAmount > 0.7 && now - lastMicroRef.current > 40) {
-        const buzzIntensity = Math.round(((peelAmount - 0.7) / 0.3) * 8);
-        if (buzzIntensity > 1) safeHaptic([buzzIntensity]);
-        lastMicroRef.current = now;
+        safeHaptic("medium");
       }
     },
-    [safeHaptic, applyPeelToDOM, dragRange, getBurstPos],
+    [safeHaptic, applyPeelToDOM, dragRange],
   );
 
   const handlePointerEnd = useCallback(
@@ -382,7 +313,6 @@ export function StickerPeelPreview({
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      // Radial velocity: positive = peeling more, negative = returning
       let springVel = vel.speed * 0.8;
       if (dragStartRef.current) {
         const dx = event.clientX - dragStartRef.current.clientX;
@@ -393,7 +323,6 @@ export function StickerPeelPreview({
       peelSpring.current.velocity = springVel;
 
       dragStartRef.current = null;
-      setIsActive(false);
 
       if (currentPeel > SNAP_THRESHOLD) {
         safeHaptic("success");
@@ -401,7 +330,6 @@ export function StickerPeelPreview({
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
         runSpringAnimation(SNAP_FORWARD_TARGET, SPRING_SNAP_FORWARD, () => {
-          // Pause at peeled state, then auto-spring back to rest
           resetTimeoutRef.current = setTimeout(() => {
             resetTimeoutRef.current = null;
             angleRef.current = DEFAULT_DRAG_ANGLE;
@@ -411,6 +339,7 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
+        safeHaptic("light");
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
@@ -419,7 +348,7 @@ export function StickerPeelPreview({
 
       adhesiveBreakRef.current = false;
     },
-    [safeHaptic, runSpringAnimation, onSnap, getBurstPos],
+    [safeHaptic, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
   );
 
   useEffect(() => {
@@ -430,8 +359,6 @@ export function StickerPeelPreview({
       }
     };
   }, []);
-
-  const willChange = isActive ? "clip-path, transform" : "auto";
 
   // Pre-compute initial clip values for first paint
   const initFoldPct = `${REST_PEEL * 100}%`;
@@ -470,12 +397,13 @@ export function StickerPeelPreview({
           ref={stickerWrapperRef}
           className="relative"
           style={{
+            contain: "layout style paint",
             userSelect: "none",
             WebkitTouchCallout: "none",
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          {/* SVG Filters — stroke + paper fill only (no specular, fast) */}
+          {/* SVG Filters — stroke + paper fill (rasterized once per layer) */}
           <svg
             width="0"
             height="0"
@@ -483,7 +411,6 @@ export function StickerPeelPreview({
             aria-hidden
           >
             <defs>
-              {/* White sticker stroke — dilates alpha outward, fills white */}
               <filter
                 id={`stroke-${uid}`}
                 x="-10%"
@@ -511,7 +438,6 @@ export function StickerPeelPreview({
                 />
               </filter>
 
-              {/* Paper backing fill — matches stroke shape, warm paper color */}
               <filter
                 id={`ef-${uid}`}
                 x="-10%"
@@ -531,13 +457,13 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
-          {/* Main sticker (front face, clipped from fold to bottom) */}
+          {/* Main sticker — drop-shadow set once, not updated per-frame */}
           <div
             ref={stickerMainRef}
             style={{
               clipPath: initMainClip,
-              filter: "drop-shadow(1px 3px 5px rgba(0,0,0,0.22))",
-              willChange,
+              filter: "drop-shadow(1px 3px 5px rgba(0,0,0,0.18))",
+              willChange: "clip-path",
             }}
           >
             <img
@@ -547,13 +473,14 @@ export function StickerPeelPreview({
               style={{
                 ...imgStyle,
                 filter: `url(#stroke-${uid})`,
+                willChange: "transform",
               }}
               draggable={false}
               onContextMenu={(ev) => ev.preventDefault()}
             />
           </div>
 
-          {/* Fold shadow — subtle crease at fold line */}
+          {/* Fold shadow */}
           <div
             ref={foldShadowRef}
             style={{
@@ -570,7 +497,7 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap (paper backing, mirrored at fold line) */}
+          {/* Peeled flap */}
           <div
             ref={flapRef}
             style={{
@@ -581,8 +508,8 @@ export function StickerPeelPreview({
               top: initFlapTop,
               clipPath: initFlapClip,
               transform: "scaleY(-1)",
-              filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.1))",
-              willChange,
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.08))",
+              willChange: "clip-path",
             }}
           >
             <img
@@ -592,6 +519,7 @@ export function StickerPeelPreview({
               style={{
                 ...imgStyle,
                 filter: `url(#ef-${uid})`,
+                willChange: "transform",
               }}
               draggable={false}
             />
