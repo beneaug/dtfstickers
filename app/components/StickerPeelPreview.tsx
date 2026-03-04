@@ -132,6 +132,8 @@ export function StickerPeelPreview({
     // Rotation that makes the drag direction point "down" (original peel direction)
     // angle=π/2 (downward) → rotation=0 (no rotation, default)
     const rotation = angle - Math.PI / 2;
+    const cosR = Math.cos(rotation);
+    const sinR = Math.sin(rotation);
 
     // Dynamic clip-path bleed: base P + extra for counter-rotated image overflow
     const overflow = Math.abs(Math.sin(rotation)) * displaySize * 0.22;
@@ -146,6 +148,11 @@ export function StickerPeelPreview({
     if (stickerMainRef.current) {
       stickerMainRef.current.style.clipPath =
         `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
+      // Counter-rotate shadow so it always falls "down" in screen space
+      const sx = (cosR + 3 * sinR).toFixed(1);
+      const sy = (-sinR + 3 * cosR).toFixed(1);
+      stickerMainRef.current.style.filter =
+        `drop-shadow(${sx}px ${sy}px 5px rgba(0,0,0,0.22))`;
     }
 
     // Flap: visible from top to fold line, mirrored downward at fold
@@ -153,6 +160,11 @@ export function StickerPeelPreview({
       flapRef.current.style.clipPath =
         `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
       flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
+      // Counter-rotate flap shadow (accounts for scaleY(-1) on element)
+      const fx = (2 * sinR).toFixed(1);
+      const fy = (2 * cosR).toFixed(1);
+      flapRef.current.style.filter =
+        `drop-shadow(${fx}px ${fy}px 5px rgba(0,0,0,0.1))`;
     }
 
     // Fold shadow at fold line
@@ -415,7 +427,7 @@ export function StickerPeelPreview({
   /* eslint-disable @next/next/no-img-element */
   return (
     <div
-      className="panel relative h-[420px] w-full overflow-hidden p-4 sm:h-[480px] sm:p-5"
+      className="panel relative h-[420px] w-full overflow-hidden p-4 sm:h-[460px] sm:p-5"
       style={{
         backgroundColor: bgColor ?? "#ffffff",
         transition: "background-color 0.6s ease",
@@ -522,8 +534,8 @@ export function StickerPeelPreview({
             ref={foldShadowRef}
             style={{
               position: "absolute",
-              left: -P,
-              right: -P,
+              left: 0,
+              right: 0,
               height: 32,
               top: `calc(${initFoldPct} - 16px)`,
               background:
@@ -563,7 +575,7 @@ export function StickerPeelPreview({
         </div>
       </div>
 
-      <p className="absolute bottom-3 left-0 w-full text-center text-[11px] uppercase tracking-[0.08em] text-muted">
+      <p className="absolute bottom-3 left-0 w-full text-center text-[11px] tracking-[0.04em] text-muted">
         Drag to peel
       </p>
     </div>

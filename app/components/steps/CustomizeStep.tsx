@@ -35,7 +35,7 @@ export function CustomizeStep({
       <div
         className="flex items-center justify-center rounded-2xl p-4"
         style={{
-          backgroundColor: bgColor ?? "#f6f7f9",
+          backgroundColor: bgColor ?? "#f6f6f8",
           transition: "background-color 0.6s ease",
         }}
       >
@@ -59,12 +59,8 @@ export function CustomizeStep({
         onAddToCart={onAddToCart}
       />
 
-      <button
-        type="button"
-        onClick={onBack}
-        className="w-full text-center text-sm text-muted transition hover:text-[#171717]"
-      >
-        ← Back to preview
+      <button type="button" onClick={onBack} className="btn-ghost">
+        &larr; Back to preview
       </button>
     </section>
   );

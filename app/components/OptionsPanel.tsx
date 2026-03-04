@@ -35,10 +35,10 @@ function Chip<T extends string | number>({
       type="button"
       onClick={() => onSelect(value)}
       className={[
-        "rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
+        "rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-200",
         active === value
-          ? "border-[#ff935f] bg-[#ff6a2d] text-white"
-          : "border-[#e0dfdf] bg-white text-[#171717] hover:border-[#cfcfcf]",
+          ? "bg-[var(--accent)] text-white"
+          : "bg-[var(--bg-soft)] text-[var(--text)] hover:opacity-70",
       ].join(" ")}
     >
       {value}
@@ -60,12 +60,12 @@ export function OptionsPanel({
     <aside className="panel p-4 sm:p-5">
       <div className="space-y-5">
         <header>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Order</p>
-          <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight">Quick options</h2>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order</p>
+          <h2 className="mt-1 text-[1.35rem] font-medium leading-tight">Quick options</h2>
         </header>
 
         <section className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Size</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Size</p>
           <div className="flex flex-wrap gap-2">
             {SIZE_OPTIONS.map((option) => (
               <Chip
@@ -79,7 +79,7 @@ export function OptionsPanel({
         </section>
 
         <section className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Quantity</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Quantity</p>
           <div className="flex flex-wrap gap-2">
             {QUANTITY_OPTIONS.map((option) => (
               <Chip
@@ -93,7 +93,7 @@ export function OptionsPanel({
         </section>
 
         <section className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Finish</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Finish</p>
           <div className="flex flex-wrap gap-2">
             {FINISH_OPTIONS.map((option) => (
               <Chip
@@ -115,25 +115,20 @@ export function OptionsPanel({
             <span>Shipping</span>
             <span>{pricing.shipping === 0 ? "Free" : formatCurrency(pricing.shipping)}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-[#dfdfdf] pt-2 font-semibold text-[#171717]">
+          <div className="flex items-center justify-between border-t border-[var(--line)] pt-2 font-medium text-[var(--text)]">
             <span>Total</span>
             <span>{formatCurrency(pricing.total)}</span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onAddToCart}
-          className="w-full rounded-full border border-[#ff935f] bg-[#ff6a2d] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#ff7a42]"
-        >
+        <button type="button" onClick={onAddToCart} className="btn-primary">
           Add to cart
         </button>
 
-        <p className="text-[11px] uppercase tracking-[0.06em] text-muted">
+        <p className="text-[11px] tracking-[0.04em] text-muted">
           Waterproof + UV-safe. Ships in 3-5 business days.
         </p>
       </div>
     </aside>
   );
 }
-

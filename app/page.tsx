@@ -66,7 +66,7 @@ export default function HomePage() {
       <main className="px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
         <div className="mx-auto w-full max-w-[42rem]">
           <header className="mb-6 text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted">12ozsticke.rs</p>
+            <p className="text-[12px] font-medium tracking-[0.12em] text-muted">12ozsticke.rs</p>
           </header>
 
           {w.step !== "upload" && (
@@ -82,16 +82,16 @@ export default function HomePage() {
           {w.step === "upload" && (
             <section className="mt-4 grid gap-2 sm:grid-cols-3">
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Material</p>
-                <p className="mt-1 text-sm font-medium text-[#171717]">Weatherproof vinyl</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Material</p>
+                <p className="mt-1 text-sm font-medium text-[var(--text)]">Weatherproof vinyl</p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Finish</p>
-                <p className="mt-1 text-sm font-medium text-[#171717]">Matte · Gloss · Holographic</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Finish</p>
+                <p className="mt-1 text-sm font-medium text-[var(--text)]">Matte &middot; Gloss &middot; Holographic</p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Guarantee</p>
-                <p className="mt-1 text-sm font-medium text-[#171717]">Love it or rerun</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Guarantee</p>
+                <p className="mt-1 text-sm font-medium text-[var(--text)]">Love it or rerun</p>
               </article>
             </section>
           )}

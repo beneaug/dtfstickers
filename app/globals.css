@@ -4,11 +4,11 @@
 
 :root {
   --bg: #ffffff;
-  --bg-soft: #f6f7f9;
-  --line: #e6e5e5;
-  --text: #171717;
-  --muted: rgba(23, 23, 23, 0.58);
-  --accent: #ff6a2d;
+  --bg-soft: #f6f6f8;
+  --line: #ebebeb;
+  --text: #1a1a1a;
+  --muted: rgba(26, 26, 26, 0.38);
+  --accent: #1a1a1a;
 }
 
 *,
@@ -28,44 +28,19 @@ body {
   color: var(--text);
   background: var(--bg);
   font-family: var(--font-sans), ui-rounded, system-ui, sans-serif;
+  font-weight: 300;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   position: relative;
 }
 
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 9rem;
-  opacity: 0.16;
-  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
-  background: linear-gradient(
-    90deg,
-    #ff2b3a,
-    #ec34f7 14%,
-    #5946f9 26%,
-    #0082ff 36%,
-    #00beca 52%,
-    #00ca48 66%,
-    #f4b000 80%,
-    #ff6800 90%,
-    #ff2d5e
-  );
-  z-index: 1;
-}
-
 main {
   position: relative;
-  z-index: 2;
 }
 
 ::selection {
   color: #fff;
-  background: #1a88f8;
+  background: var(--accent);
 }
 
 .text-muted {
@@ -78,14 +53,14 @@ main {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 1.25rem;
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.04);
-  transition: background-color 0.6s ease, box-shadow 0.3s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: background-color 0.6s ease;
 }
 
 .panel-soft {
-  border: 1px solid var(--line);
   background: var(--bg-soft);
-  border-radius: 1rem;
+  border: none;
+  border-radius: 0.875rem;
   transition: background-color 0.3s ease;
 }
 
@@ -93,12 +68,11 @@ main {
 
 .ghost-link {
   color: var(--muted);
-  transition: color 150ms ease, transform 150ms ease;
+  transition: opacity 200ms ease;
 }
 
 .ghost-link:hover {
-  color: var(--text);
-  transform: translateY(-1px);
+  opacity: 0.7;
 }
 
 /* --- Sticker section entrance --- */
@@ -164,13 +138,13 @@ main {
 }
 
 .wizard-dot-btn.is-completed:hover .wizard-dot {
-  opacity: 0.9;
+  opacity: 0.8;
   transform: scale(1.2);
 }
 
 .wizard-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--line);
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -185,10 +159,63 @@ main {
 
 .wizard-dot-btn.is-completed .wizard-dot {
   background: var(--accent);
-  opacity: 0.5;
+  opacity: 0.35;
 }
 
 .wizard-dot-btn.is-future .wizard-dot {
   background: var(--line);
   opacity: 0.5;
+}
+
+/* --- Primary button --- */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 9999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 200ms ease, transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-primary:hover {
+  opacity: 0.82;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* --- Ghost button (back links) --- */
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: opacity 200ms ease;
+}
+
+.btn-ghost:hover {
+  opacity: 0.6;
 }

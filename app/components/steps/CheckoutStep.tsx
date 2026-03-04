@@ -35,7 +35,7 @@ export function CheckoutStep({
   const orderId = useMemo(() => createOrderId(), []);
 
   const inputClassName =
-    "mt-1 w-full rounded-xl border border-[#dfdfdf] bg-white px-3 py-2 text-[#171717] outline-none transition focus:border-[#b7b7b7]";
+    "mt-1 w-full rounded-xl border border-transparent bg-[var(--bg-soft)] px-3.5 py-2.5 text-[var(--text)] outline-none transition focus:bg-white focus:border-[var(--line)]";
 
   const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,18 +48,17 @@ export function CheckoutStep({
   if (status === "complete" || lastCheckout) {
     const displayData = lastCheckout ?? form;
     return (
-      <section className="panel p-5 sm:p-6 space-y-4">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Order confirmed</p>
-        <h3 className="text-3xl font-semibold text-[#171717]">You&apos;re set.</h3>
+      <section className="panel space-y-4 p-5 sm:p-6">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order confirmed</p>
+        <h3 className="text-3xl font-medium text-[var(--text)]">You&apos;re set.</h3>
         <div className="panel-soft p-4 text-sm text-muted">
-          <p className="mb-1 text-[#171717]">{itemSummary}</p>
+          <p className="mb-1 text-[var(--text)]">{itemSummary}</p>
           <p className="mb-1">Order ID: {orderId}</p>
           <p>Total paid: {total}</p>
           <p className="mt-2">Confirmation sent to {displayData.email}</p>
         </div>
-        <button type="button" onClick={onBack}
-          className="w-full text-center text-sm text-muted transition hover:text-[#171717]">
-          ← Start new order
+        <button type="button" onClick={onBack} className="btn-ghost">
+          &larr; Start new order
         </button>
       </section>
     );
@@ -69,12 +68,12 @@ export function CheckoutStep({
     <section className="panel p-5 sm:p-6">
       <form className="space-y-3.5" onSubmit={submitCheckout}>
         <div className="mb-1">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Checkout</p>
-          <h3 className="text-2xl font-semibold text-[#171717]">Almost there</h3>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Checkout</p>
+          <h3 className="text-2xl font-medium text-[var(--text)]">Almost there</h3>
         </div>
 
         <div className="panel-soft p-4 text-sm text-muted">
-          <p className="text-[#171717]">{itemSummary}</p>
+          <p className="text-[var(--text)]">{itemSummary}</p>
           <p className="mt-1">Total due today: {total}</p>
         </div>
 
@@ -120,15 +119,13 @@ export function CheckoutStep({
           </label>
         </div>
 
-        <button type="submit" disabled={status === "submitting"}
-          className="w-full rounded-full border border-[#ff935f] bg-[#ff6a2d] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#ff7a42] disabled:cursor-not-allowed disabled:opacity-70">
+        <button type="submit" disabled={status === "submitting"} className="btn-primary">
           {status === "submitting" ? "Placing order..." : "Place order"}
         </button>
       </form>
 
-      <button type="button" onClick={onBack}
-        className="mt-3 w-full text-center text-sm text-muted transition hover:text-[#171717]">
-        ← Back to options
+      <button type="button" onClick={onBack} className="btn-ghost mt-1">
+        &larr; Back to options
       </button>
     </section>
   );
