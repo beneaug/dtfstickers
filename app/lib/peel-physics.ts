@@ -150,3 +150,122 @@ export function cornerToPeelDirection(corner: PeelCorner): PeelDirection {
       return { corner, sweepSign: -1, originY: "top" };
   }
 }
+
+// --- Vec2 Math ---
+
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+
+export function vec2(x: number, y: number): Vec2 {
+  return { x, y };
+}
+
+function dot(a: Vec2, b: Vec2): number {
+  return a.x * b.x + a.y * b.y;
+}
+
+function sub(a: Vec2, b: Vec2): Vec2 {
+  return { x: a.x - b.x, y: a.y - b.y };
+}
+
+// --- Fold Line ---
+
+export interface FoldLine {
+  point: Vec2; // a point on the fold line
+  normal: Vec2; // unit normal pointing toward the peeled (flap) side
+  angle: number; // angle of the fold line itself (radians)
+}
+
+function signedDistance(q: Vec2, fold: FoldLine): number {
+  return dot(sub(q, fold.point), fold.normal);
+}
+
+/**
+ * Compute fold line for a given drag angle and peel amount.
+ * The fold sweeps from the drag-origin edge toward the opposite edge.
+ */
+export function computeFoldLine(
+  dragAngle: number,
+  peel: number,
+  w: number,
+  h: number,
+): FoldLine {
+  const nx = -Math.cos(dragAngle);
+  const ny = -Math.sin(dragAngle);
+  const lineAngle = dragAngle + Math.PI / 2;
+
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // Distance from center to edge along the normal direction
+  const extent = Math.abs(nx) * w / 2 + Math.abs(ny) * h / 2;
+
+  // Fold sweeps: peel=0 → at peeled edge, peel=1 → at opposite edge
+  const t = 1 - 2 * peel;
+  const px = cx + t * extent * nx;
+  const py = cy + t * extent * ny;
+
+  return {
+    point: { x: px, y: py },
+    normal: { x: nx, y: ny },
+    angle: lineAngle,
+  };
+}
+
+/**
+ * Clip a convex polygon against a fold line into two halves.
+ * Returns main (un-peeled, signedDistance ≤ 0) and flap (peeled, signedDistance > 0).
+ */
+export function clipPolygon(
+  polygon: Vec2[],
+  fold: FoldLine,
+): { main: Vec2[]; flap: Vec2[] } {
+  const main: Vec2[] = [];
+  const flap: Vec2[] = [];
+  const n = polygon.length;
+
+  for (let i = 0; i < n; i++) {
+    const curr = polygon[i];
+    const next = polygon[(i + 1) % n];
+    const dCurr = signedDistance(curr, fold);
+    const dNext = signedDistance(next, fold);
+
+    if (dCurr <= 0) {
+      main.push(curr);
+    } else {
+      flap.push(curr);
+    }
+
+    // Insert intersection where edge crosses the fold line
+    if ((dCurr > 0 && dNext <= 0) || (dCurr <= 0 && dNext > 0)) {
+      const t = dCurr / (dCurr - dNext);
+      const ix = curr.x + t * (next.x - curr.x);
+      const iy = curr.y + t * (next.y - curr.y);
+      main.push({ x: ix, y: iy });
+      flap.push({ x: ix, y: iy });
+    }
+  }
+
+  return { main, flap };
+}
+
+// --- Continuous Drag Angle ---
+
+const ANGLE_DEADZONE = 5; // px before reporting an angle
+export const DEFAULT_DRAG_ANGLE = Math.PI / 2; // downward
+
+/**
+ * Compute drag angle from displacement with a deadzone.
+ * Returns the drag angle, or fallback if within deadzone.
+ */
+export function continuousDragAngle(
+  dx: number,
+  dy: number,
+  fallback: number = DEFAULT_DRAG_ANGLE,
+): number {
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < ANGLE_DEADZONE) return fallback;
+  return Math.atan2(dy, dx);
+}

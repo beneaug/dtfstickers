@@ -16,7 +16,16 @@ import {
   SPRING_SNAP_FORWARD,
   type SpringState,
 } from "../lib/spring";
-import { adhesiveCurve, VelocityTracker } from "../lib/peel-physics";
+import {
+  adhesiveCurve,
+  VelocityTracker,
+  computeFoldLine,
+  clipPolygon,
+  continuousDragAngle,
+  DEFAULT_DRAG_ANGLE,
+  vec2,
+  type Vec2,
+} from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
 import type { StickerSize } from "../lib/pricing";
 
@@ -51,6 +60,22 @@ function getDragRange(displaySize: number): number {
   return Math.max(180, displaySize * 1.2);
 }
 
+/** Convert a polygon (Vec2[]) to a CSS clip-path polygon string using px units */
+function polyToClipPath(poly: Vec2[]): string {
+  if (poly.length === 0) return "polygon(0 0)";
+  return `polygon(${poly.map((p) => `${p.x}px ${p.y}px`).join(", ")})`;
+}
+
+/** Build the extended sticker rectangle (with bleed) for polygon clipping */
+function stickerRect(w: number, h: number): Vec2[] {
+  return [
+    vec2(-P, -P),
+    vec2(w + P, -P),
+    vec2(w + P, h + P),
+    vec2(-P, h + P),
+  ];
+}
+
 export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
@@ -70,10 +95,13 @@ export function StickerPeelPreview({
 
   // Interaction refs
   const peelRef = useRef(REST_PEEL);
+  const angleRef = useRef(DEFAULT_DRAG_ANGLE);
   const activePointerRef = useRef<number | null>(null);
   const velocityTracker = useRef(new VelocityTracker());
   const snappedRef = useRef(false);
-  const dragStartRef = useRef<{ clientY: number } | null>(null);
+  const dragStartRef = useRef<{ clientX: number; clientY: number } | null>(
+    null,
+  );
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
@@ -117,39 +145,43 @@ export function StickerPeelPreview({
 
   const applyPeelToDOM = useCallback(() => {
     const peel = peelRef.current;
-    // Top-down peel: fold line at peel*100% from top
-    // peel=0 → fold at 0% (nothing peeled)
-    // peel=0.08 → fold at 8% (top 8% peeled back)
-    // peel=1 → fold at 100% (fully peeled)
-    const foldPct = `${peel * 100}%`;
-    const s = `${-P}px`;
-    const e = `calc(100% + ${P}px)`;
+    const angle = angleRef.current;
+    const w = displaySize;
+    const h = displaySize;
 
-    // Main sticker: visible from fold line to bottom
+    const fold = computeFoldLine(angle, peel, w, h);
+    const rect = stickerRect(w, h);
+    const { main, flap } = clipPolygon(rect, fold);
+    const foldAngleDeg = (fold.angle * 180) / Math.PI;
+
+    // Main sticker: visible un-peeled region
     if (stickerMainRef.current) {
-      stickerMainRef.current.style.clipPath =
-        `polygon(${s} ${foldPct}, ${e} ${foldPct}, ${e} ${e}, ${s} ${e})`;
+      stickerMainRef.current.style.clipPath = polyToClipPath(main);
     }
 
-    // Flap: visible from top to fold line, mirrored downward at fold
+    // Flap: peeled region, reflected across fold line via CSS transform
     if (flapRef.current) {
-      flapRef.current.style.clipPath =
-        `polygon(${s} ${s}, ${e} ${s}, ${e} ${foldPct}, ${s} ${foldPct})`;
-      flapRef.current.style.top = `${(2 * peel - 1) * 100}%`;
+      flapRef.current.style.clipPath = polyToClipPath(flap);
+      flapRef.current.style.top = "0";
+      flapRef.current.style.transformOrigin = `${fold.point.x}px ${fold.point.y}px`;
+      flapRef.current.style.transform = `rotate(${-foldAngleDeg}deg) scaleY(-1) rotate(${foldAngleDeg}deg)`;
     }
 
-    // Fold shadow at fold line
+    // Fold shadow at fold line, rotated to match
     if (foldShadowRef.current) {
-      foldShadowRef.current.style.top = `calc(${foldPct} - 16px)`;
+      foldShadowRef.current.style.left = `${fold.point.x}px`;
+      foldShadowRef.current.style.top = `${fold.point.y}px`;
+      foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${foldAngleDeg}deg)`;
       foldShadowRef.current.style.opacity = String(
         peel > 0.02 ? clamp(peel * 2, 0, 0.6) : 0,
       );
     }
-  }, []);
+  }, [displaySize]);
 
   // Reset on image/size change
   useEffect(() => {
     peelRef.current = REST_PEEL;
+    angleRef.current = DEFAULT_DRAG_ANGLE;
     peelSpring.current = { value: REST_PEEL, velocity: 0 };
     snappedRef.current = false;
     firstPeelRef.current = false;
@@ -213,6 +245,9 @@ export function StickerPeelPreview({
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
+          // Reset angle to default when spring settles
+          angleRef.current = DEFAULT_DRAG_ANGLE;
+          applyPeelToDOM();
           return;
         }
 
@@ -237,7 +272,10 @@ export function StickerPeelPreview({
       adhesiveBreakRef.current = false;
       velocityTracker.current.reset();
 
-      dragStartRef.current = { clientY: event.clientY };
+      dragStartRef.current = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
 
       event.currentTarget.setPointerCapture(event.pointerId);
       setIsActive(true);
@@ -261,11 +299,15 @@ export function StickerPeelPreview({
       event.preventDefault();
       velocityTracker.current.push(event.clientX, event.clientY);
 
+      const dx = event.clientX - dragStartRef.current.clientX;
       const dy = event.clientY - dragStartRef.current.clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Downward drag (+dy > 0) increases peel — pull sticker down from top
-      const rawDisplacement = clamp(dy / dragRange, 0, 1);
+      // Update drag angle continuously (with small deadzone)
+      angleRef.current = continuousDragAngle(dx, dy, angleRef.current);
 
+      // Peel amount based on distance from start
+      const rawDisplacement = clamp(dist / dragRange, 0, 1);
       const peelAmount = clamp(
         REST_PEEL + adhesiveCurve(rawDisplacement) * (1 - REST_PEEL),
         REST_PEEL,
@@ -287,7 +329,7 @@ export function StickerPeelPreview({
       const now = performance.now();
 
       if (
-        dy > 0 &&
+        dist > 5 &&
         now - lastMicroRef.current >
           Math.max(60, 200 - vel.speed * 120)
       ) {
@@ -314,14 +356,21 @@ export function StickerPeelPreview({
       }
 
       activePointerRef.current = null;
-      dragStartRef.current = null;
-      setIsActive(false);
-
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
-      // Downward velocity (positive vy) = increasing peel
-      peelSpring.current.velocity = vel.vy * 0.8;
+      // Radial velocity: positive = peeling more, negative = returning
+      let springVel = vel.speed * 0.8;
+      if (dragStartRef.current) {
+        const dx = event.clientX - dragStartRef.current.clientX;
+        const dy = event.clientY - dragStartRef.current.clientY;
+        const radialDot = vel.vx * dx + vel.vy * dy;
+        if (radialDot < 0) springVel = -springVel;
+      }
+      peelSpring.current.velocity = springVel;
+
+      dragStartRef.current = null;
+      setIsActive(false);
 
       if (currentPeel > SNAP_THRESHOLD) {
         safeHaptic("success");
@@ -347,13 +396,21 @@ export function StickerPeelPreview({
 
   const willChange = isActive ? "clip-path, transform" : "auto";
 
-  // Pre-compute initial clip values for first paint
-  const initFoldPct = `${REST_PEEL * 100}%`;
-  const s = `${-P}px`;
-  const e = `calc(100% + ${P}px)`;
-  const initMainClip = `polygon(${s} ${initFoldPct}, ${e} ${initFoldPct}, ${e} ${e}, ${s} ${e})`;
-  const initFlapClip = `polygon(${s} ${s}, ${e} ${s}, ${e} ${initFoldPct}, ${s} ${initFoldPct})`;
-  const initFlapTop = `${(2 * REST_PEEL - 1) * 100}%`;
+  // Pre-compute initial clip/transform values for first paint
+  const initFold = computeFoldLine(
+    DEFAULT_DRAG_ANGLE,
+    REST_PEEL,
+    displaySize,
+    displaySize,
+  );
+  const initRect = stickerRect(displaySize, displaySize);
+  const initClips = clipPolygon(initRect, initFold);
+  const initMainClip = polyToClipPath(initClips.main);
+  const initFlapClip = polyToClipPath(initClips.flap);
+  const initFoldAngleDeg = (initFold.angle * 180) / Math.PI;
+
+  // Fold shadow width: covers diagonal + bleed
+  const shadowWidth = Math.ceil(displaySize * 1.5) + 2 * P;
 
   const imgStyle: React.CSSProperties = {
     width: displaySize,
@@ -444,7 +501,7 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
-          {/* Main sticker (front face, clipped from fold to bottom) */}
+          {/* Main sticker (front face, clipped to un-peeled region) */}
           <div
             ref={stickerMainRef}
             style={{
@@ -470,10 +527,11 @@ export function StickerPeelPreview({
             ref={foldShadowRef}
             style={{
               position: "absolute",
-              left: -P,
-              right: -P,
+              width: shadowWidth,
               height: 32,
-              top: `calc(${initFoldPct} - 16px)`,
+              left: initFold.point.x,
+              top: initFold.point.y,
+              transform: `translate(-50%, -50%) rotate(${initFoldAngleDeg}deg)`,
               background:
                 "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.05) 65%, transparent 100%)",
               pointerEvents: "none",
@@ -482,7 +540,7 @@ export function StickerPeelPreview({
             }}
           />
 
-          {/* Peeled flap (paper backing, mirrored at fold line) */}
+          {/* Peeled flap (paper backing, reflected across fold line) */}
           <div
             ref={flapRef}
             style={{
@@ -490,9 +548,10 @@ export function StickerPeelPreview({
               width: "100%",
               height: "100%",
               left: 0,
-              top: initFlapTop,
+              top: 0,
               clipPath: initFlapClip,
-              transform: "scaleY(-1)",
+              transformOrigin: `${initFold.point.x}px ${initFold.point.y}px`,
+              transform: `rotate(${-initFoldAngleDeg}deg) scaleY(-1) rotate(${initFoldAngleDeg}deg)`,
               filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.1))",
               willChange,
             }}
@@ -511,7 +570,7 @@ export function StickerPeelPreview({
       </div>
 
       <p className="absolute bottom-3 left-0 w-full text-center text-[11px] uppercase tracking-[0.08em] text-muted">
-        Pull down to peel
+        Drag to peel
       </p>
     </div>
   );
