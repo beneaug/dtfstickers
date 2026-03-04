@@ -47,7 +47,7 @@ export function PreviewStep({
 
       <div className="flex items-center justify-between gap-3 px-1">
         <p className="truncate text-sm text-muted">{fileName}</p>
-        <Uploader onFileSelected={onFileSelected} label="Replace" subtle />
+        <Uploader onFileSelected={onFileSelected} label="Swap" subtle />
       </div>
 
       <OptionsPanel

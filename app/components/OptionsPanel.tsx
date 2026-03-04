@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import {
   FINISH_OPTIONS,
   QUANTITY_OPTIONS,
@@ -35,7 +37,7 @@ function Chip<T extends string | number>({
       type="button"
       onClick={() => onSelect(value)}
       className={[
-        "rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-200",
+        "rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-200 active:scale-[0.95]",
         active === value
           ? "bg-[var(--accent)] text-white"
           : "bg-[var(--bg-soft)] text-[var(--text)] hover:opacity-70",
@@ -56,12 +58,25 @@ export function OptionsPanel({
   onFinishChange,
   onAddToCart,
 }: OptionsPanelProps) {
+  const { trigger, isSupported } = useWebHaptics();
+
+  const hapticSelect = useCallback(
+    <T,>(fn: (v: T) => void) =>
+      (v: T) => {
+        if (isSupported) try { trigger("selection" as never); } catch { /* */ }
+        fn(v);
+      },
+    [trigger, isSupported],
+  );
+
   return (
     <aside className="panel p-4 sm:p-5">
       <div className="space-y-5">
         <header>
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order</p>
-          <h2 className="mt-1 text-[1.35rem] font-bold leading-tight tracking-[-0.01em]">Quick options</h2>
+          <h2 className="mt-1 text-[1.35rem] font-bold leading-tight tracking-[-0.01em]">
+            Make it yours
+          </h2>
         </header>
 
         <section className="space-y-2">
@@ -72,7 +87,7 @@ export function OptionsPanel({
                 key={option.value}
                 value={option.value}
                 active={size}
-                onSelect={onSizeChange}
+                onSelect={hapticSelect(onSizeChange)}
               />
             ))}
           </div>
@@ -86,7 +101,7 @@ export function OptionsPanel({
                 key={option}
                 value={option}
                 active={quantity}
-                onSelect={onQuantityChange}
+                onSelect={hapticSelect(onQuantityChange)}
               />
             ))}
           </div>
@@ -100,7 +115,7 @@ export function OptionsPanel({
                 key={option.value}
                 value={option.value}
                 active={finish}
-                onSelect={onFinishChange}
+                onSelect={hapticSelect(onFinishChange)}
               />
             ))}
           </div>
@@ -113,7 +128,13 @@ export function OptionsPanel({
           </div>
           <div className="mb-1 flex items-center justify-between text-muted">
             <span>Shipping</span>
-            <span>{pricing.shipping === 0 ? "Free" : formatCurrency(pricing.shipping)}</span>
+            <span>
+              {pricing.shipping === 0 ? (
+                <span className="font-medium text-[var(--text)]">Free</span>
+              ) : (
+                formatCurrency(pricing.shipping)
+              )}
+            </span>
           </div>
           <div className="flex items-center justify-between border-t border-[var(--line)] pt-2 font-bold text-[var(--text)]">
             <span>Total</span>
@@ -122,11 +143,11 @@ export function OptionsPanel({
         </div>
 
         <button type="button" onClick={onAddToCart} className="btn-primary">
-          Add to cart
+          I want these
         </button>
 
         <p className="text-[11px] tracking-[0.04em] text-muted">
-          Waterproof + UV-safe. Ships in 3-5 business days.
+          Built to survive anything. At your door in 3&ndash;5 days.
         </p>
       </div>
     </aside>

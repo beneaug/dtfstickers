@@ -92,9 +92,10 @@ export function StickerPeelPreview({
   const animatingRef = useRef(false);
   const springConfigRef = useRef(SPRING_SNAP_BACK);
 
-  // Haptic refs
+  // Haptic + hint refs
   const firstPeelRef = useRef(false);
   const adhesiveBreakRef = useRef(false);
+  const hintRef = useRef<HTMLParagraphElement>(null);
 
   const debugHaptics = process.env.NEXT_PUBLIC_HAPTICS_DEBUG === "1";
   const { trigger, isSupported } = useWebHaptics({ debug: debugHaptics });
@@ -253,6 +254,11 @@ export function StickerPeelPreview({
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
         safeHaptic("light");
+        // Fade out the hint on first touch
+        if (hintRef.current) {
+          hintRef.current.classList.remove("peel-hint");
+          hintRef.current.classList.add("peel-hint-hidden");
+        }
       }
     },
     [safeHaptic],
@@ -527,8 +533,11 @@ export function StickerPeelPreview({
         </div>
       </div>
 
-      <p className="absolute bottom-3 left-0 w-full text-center text-[11px] tracking-[0.04em] text-muted">
-        Drag to peel
+      <p
+        ref={hintRef}
+        className="peel-hint absolute bottom-3 left-0 w-full text-center text-[11px] tracking-[0.04em] text-muted"
+      >
+        Go on, peel it
       </p>
     </div>
   );

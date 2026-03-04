@@ -34,6 +34,18 @@ body {
   position: relative;
 }
 
+/* Subtle grain texture — warmth */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.024;
+  z-index: 9998;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
 main {
   position: relative;
 }
@@ -221,4 +233,36 @@ main {
 
 .btn-ghost:hover {
   opacity: 0.6;
+}
+
+/* --- Peel hint --- */
+
+.peel-hint {
+  animation: hint-breathe 2.4s ease-in-out infinite;
+}
+
+.peel-hint-hidden {
+  animation: hint-fade-out 0.6s ease forwards;
+}
+
+@keyframes hint-breathe {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 0.55; transform: translateY(-2px); }
+}
+
+@keyframes hint-fade-out {
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+/* --- Drop zone --- */
+
+.drop-zone {
+  border: 2px dashed var(--line);
+  border-radius: 1rem;
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.drop-zone.is-over {
+  border-color: var(--accent);
+  background-color: rgba(10, 10, 10, 0.02);
 }

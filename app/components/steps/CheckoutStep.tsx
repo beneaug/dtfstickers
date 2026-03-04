@@ -49,16 +49,18 @@ export function CheckoutStep({
     const displayData = lastCheckout ?? form;
     return (
       <section className="panel space-y-4 p-5 sm:p-6">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order confirmed</p>
-        <h3 className="text-3xl font-bold tracking-[-0.02em] text-[var(--text)]">You&apos;re set.</h3>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Done</p>
+        <h3 className="text-3xl font-bold tracking-[-0.02em] text-[var(--text)]">
+          They&apos;re on the way.
+        </h3>
         <div className="panel-soft p-4 text-sm text-muted">
           <p className="mb-1 text-[var(--text)]">{itemSummary}</p>
-          <p className="mb-1">Order ID: {orderId}</p>
-          <p>Total paid: {total}</p>
-          <p className="mt-2">Confirmation sent to {displayData.email}</p>
+          <p className="mb-1">Order {orderId}</p>
+          <p>Total: {total}</p>
+          <p className="mt-2">We&apos;ll send updates to {displayData.email}</p>
         </div>
         <button type="button" onClick={onBack} className="btn-ghost">
-          &larr; Start new order
+          &larr; Make another
         </button>
       </section>
     );
@@ -68,13 +70,15 @@ export function CheckoutStep({
     <section className="panel p-5 sm:p-6">
       <form className="space-y-3.5" onSubmit={submitCheckout}>
         <div className="mb-1">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Checkout</p>
-          <h3 className="text-2xl font-bold tracking-[-0.02em] text-[var(--text)]">Almost there</h3>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Last step</p>
+          <h3 className="text-2xl font-bold tracking-[-0.02em] text-[var(--text)]">
+            Where should we send them?
+          </h3>
         </div>
 
         <div className="panel-soft p-4 text-sm text-muted">
           <p className="text-[var(--text)]">{itemSummary}</p>
-          <p className="mt-1">Total due today: {total}</p>
+          <p className="mt-1">Total: {total}</p>
         </div>
 
         <label className="block text-sm text-muted">
@@ -120,12 +124,12 @@ export function CheckoutStep({
         </div>
 
         <button type="submit" disabled={status === "submitting"} className="btn-primary">
-          {status === "submitting" ? "Placing order..." : "Place order"}
+          {status === "submitting" ? "On it..." : "Place order"}
         </button>
       </form>
 
       <button type="button" onClick={onBack} className="btn-ghost mt-1">
-        &larr; Back to options
+        &larr; Go back
       </button>
     </section>
   );

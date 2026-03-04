@@ -54,8 +54,8 @@ export default function HomePage() {
       <main className="px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
         <div className="mx-auto w-full max-w-[42rem]">
           <header className="mb-6 text-center">
-            <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
-              12ozsticke.rs
+            <p className="text-[12px] font-bold tracking-[0.14em] text-muted uppercase">
+              12oz stickers
             </p>
           </header>
 
@@ -72,16 +72,22 @@ export default function HomePage() {
           {w.step === "upload" && (
             <section className="mt-4 grid gap-2 sm:grid-cols-3">
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">Material</p>
-                <p className="mt-1 text-sm font-bold text-[var(--text)]">Weatherproof vinyl</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Tough stuff</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text)]">
+                  Survives rain, sun, dishwashers
+                </p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">Finish</p>
-                <p className="mt-1 text-sm font-bold text-[var(--text)]">Matte &middot; Gloss &middot; Holographic</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Three finishes</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text)]">
+                  Matte &middot; Gloss &middot; Holographic
+                </p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">Guarantee</p>
-                <p className="mt-1 text-sm font-bold text-[var(--text)]">Love it or rerun</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">No-brainer guarantee</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text)]">
+                  Don&apos;t love it? We&apos;ll redo it.
+                </p>
               </article>
             </section>
           )}
