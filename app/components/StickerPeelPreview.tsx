@@ -378,11 +378,8 @@ export function StickerPeelPreview({
     // Only activate if sticker is near rest (not mid-peel)
     if (peelRef.current > REST_PEEL + 0.05) return;
 
-    // Fire 2-second buzz — two chained 1000ms segments (library clamps each to 1s max)
-    triggerRef.current([
-      { duration: 1000, intensity: 1 },
-      { duration: 1000, intensity: 1 },
-    ]);
+    // Fire buzz — same string preset as the working test button
+    triggerRef.current("buzz");
     activatedRef.current = true;
 
     // Visual cue: lift sticker corner slightly
@@ -513,9 +510,29 @@ export function StickerPeelPreview({
       peelSpring.current.velocity = springVel;
       dragStartRef.current = null;
 
-      // If sticker barely moved (tap), let onClick handle the buzz activation.
-      // Don't fire nudge or spring-back — onClick fires right after this.
+      // Tap detected (sticker barely moved).
+      // For touch: pointerUp IS activation-triggering (unlike pointerDown).
+      // Fire trigger("buzz") directly here — don't rely on click event which
+      // may be suppressed by setPointerCapture on iOS Safari.
+      // For mouse: skip, let onClick handle it (mouse pointerUp is NOT activation-triggering).
       if (currentPeel <= REST_PEEL + 0.03) {
+        if (event.pointerType !== "mouse" && !snappedRef.current && !activatedRef.current) {
+          triggerRef.current("buzz");
+          activatedRef.current = true;
+          peelRef.current = 0.15;
+          applyPeelToDOM();
+          if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+          activationTimerRef.current = setTimeout(() => {
+            activatedRef.current = false;
+            activationTimerRef.current = null;
+            if (activePointerRef.current === null && !snappedRef.current) {
+              runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+                angleRef.current = DEFAULT_DRAG_ANGLE;
+                applyPeelToDOM();
+              });
+            }
+          }, ACTIVATION_WINDOW);
+        }
         return;
       }
 
