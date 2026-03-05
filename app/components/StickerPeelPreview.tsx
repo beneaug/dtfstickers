@@ -57,7 +57,7 @@ function getStrokeWidth(displaySize: number): number {
 }
 
 function getDragRange(displaySize: number): number {
-  return Math.max(180, displaySize * 1.15);
+  return Math.max(220, displaySize * 1.6);
 }
 
 
@@ -120,7 +120,7 @@ export function StickerPeelPreview({
   const hintRef = useRef<HTMLParagraphElement>(null);
 
   // Progressive haptic ticks — fire at regular peel intervals for texture feel
-  const HAPTIC_STEP = 0.07;
+  const HAPTIC_STEP = 0.10;
   const lastHapticStepRef = useRef(0);
   const lastHapticTimeRef = useRef(0);
 
@@ -238,11 +238,11 @@ export function StickerPeelPreview({
         applyPeelToDOM();
 
         // Haptic ticks during spring animation — textured snap feel
-        const prevStep = Math.floor(prevPeel / 0.07);
-        const curStep = Math.floor(peelRef.current / 0.07);
-        if (curStep !== prevStep && now - lastHapticTimeRef.current > 55) {
+        const prevStep = Math.floor(prevPeel / 0.10);
+        const curStep = Math.floor(peelRef.current / 0.10);
+        if (curStep !== prevStep && now - lastHapticTimeRef.current > 80) {
           lastHapticTimeRef.current = now;
-          try { haptic("selection"); } catch { /* */ }
+          try { haptic("light"); } catch { /* */ }
         }
 
         if (peelResult.atRest || !animatingRef.current) {
@@ -316,8 +316,8 @@ export function StickerPeelPreview({
 
       // Smooth angle blending — fluid direction changes, no jitter
       const rawAngle = continuousDragAngle(dx, dy, angleRef.current);
-      // Blend more aggressively when further from start (committed movement)
-      const blend = clamp((dist - 8) / 80, 0, 0.25);
+      // Blend gently — prevents squirrely direction changes on mobile
+      const blend = clamp((dist - 12) / 120, 0, 0.15);
       angleRef.current = lerpAngle(angleRef.current, rawAngle, blend);
 
       const rawDisplacement = clamp(dist / dragRange, 0, 1);
@@ -337,17 +337,17 @@ export function StickerPeelPreview({
         });
       }
 
-      // Progressive haptic ticks — fire at each peel step boundary for texture
+      // Progressive haptic ticks — fire at each peel step for texture feel
       const currentStep = Math.floor(peelAmount / HAPTIC_STEP);
       if (currentStep !== lastHapticStepRef.current) {
         lastHapticStepRef.current = currentStep;
-        safeHaptic("selection");
+        safeHaptic("light");
       }
 
       // Adhesive break haptic — stronger pop when adhesive releases
-      if (!adhesiveBreakRef.current && peelAmount > 0.15) {
+      if (!adhesiveBreakRef.current && peelAmount > 0.18) {
         adhesiveBreakRef.current = true;
-        safeHaptic("heavy");
+        safeHaptic("medium");
       }
     },
     [safeHaptic, applyPeelToDOM, dragRange],
