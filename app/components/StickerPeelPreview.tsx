@@ -500,13 +500,27 @@ export function StickerPeelPreview({
             </defs>
           </svg>
 
+          {/* Kiss-cut backing sheet — static rectangle behind everything */}
+          {isKissCut && (
+            <div
+              style={{
+                position: "absolute",
+                inset: -strokeW * 2,
+                background: "white",
+                borderRadius: 6,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                zIndex: -1,
+              }}
+            />
+          )}
+
           {/* Main sticker — the un-peeled part */}
           <div
             ref={stickerMainRef}
             style={{
               clipPath: initFold.mainClip,
               willChange: "clip-path",
-              background: isSquareCut || isKissCut ? "white" : undefined,
+              background: isSquareCut ? "white" : undefined,
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
@@ -575,7 +589,7 @@ export function StickerPeelPreview({
               transform: initFold.flapTransform,
               transformOrigin: "0 0",
               willChange: "clip-path, transform",
-              background: isSquareCut || isKissCut ? "#e8e4dd" : undefined,
+              background: isSquareCut ? "#e8e4dd" : undefined,
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
