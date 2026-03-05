@@ -260,38 +260,55 @@ main {
 
 .holo-overlay {
   background:
-    /* Layer 1 — fine diagonal diffraction lines (static) */
+    /* 1 — Specular highlight (holographic vinyl is also reflective) */
+    linear-gradient(
+      140deg,
+      transparent 30%,
+      rgba(255,255,255,0.14) 43%,
+      rgba(255,255,255,0.28) 50%,
+      rgba(255,255,255,0.14) 57%,
+      transparent 70%
+    ),
+    /* 2 — Fine diffraction grating lines (static) */
     repeating-linear-gradient(
       135deg,
-      rgba(255,255,255,0.06) 0px,
-      transparent 1.5px,
-      transparent 5px
+      rgba(255,255,255,0.09) 0px,
+      transparent 1px,
+      transparent 3px
     ),
-    /* Layer 2 — rainbow prismatic bands (animated) */
+    /* 3 — Primary prismatic sweep (animated, bold) */
     linear-gradient(
       135deg,
-      rgba(255,0,60,0.18),
-      rgba(255,150,0,0.14),
-      rgba(255,255,0,0.10),
-      rgba(0,230,80,0.14),
-      rgba(0,120,255,0.20),
-      rgba(150,0,255,0.16),
-      rgba(255,0,60,0.12),
-      rgba(255,150,0,0.16),
-      rgba(0,230,80,0.10),
-      rgba(0,120,255,0.18),
-      rgba(150,0,255,0.14),
-      rgba(255,0,60,0.18)
+      hsla(350,100%,60%,0.30),
+      hsla(30,100%,55%,0.26),
+      hsla(60,100%,50%,0.20),
+      hsla(140,95%,48%,0.28),
+      hsla(195,100%,55%,0.35),
+      hsla(260,100%,58%,0.30),
+      hsla(320,100%,55%,0.24),
+      hsla(350,100%,60%,0.30)
+    ),
+    /* 4 — Cross-axis interference at opposing angle (animated separately) */
+    linear-gradient(
+      -30deg,
+      hsla(180,100%,55%,0.18),
+      hsla(240,100%,58%,0.24),
+      hsla(300,95%,55%,0.18),
+      hsla(0,100%,58%,0.14),
+      hsla(60,100%,52%,0.18),
+      hsla(120,100%,55%,0.24),
+      hsla(180,100%,55%,0.18)
     );
   mix-blend-mode: overlay;
-  background-size: 6px 6px, 400% 400%;
+  background-size: 100% 100%, 4px 4px, 300% 300%, 200% 200%;
   animation: holo-shift 5s ease-in-out infinite;
 }
 
 @keyframes holo-shift {
-  0%   { background-position: 0 0, 0% 0%; }
-  50%  { background-position: 0 0, 100% 100%; }
-  100% { background-position: 0 0, 0% 0%; }
+  0%   { background-position: 0 0, 0 0, 0% 0%, 100% 100%; }
+  33%  { background-position: 0 0, 0 0, 60% 100%, 0% 40%; }
+  66%  { background-position: 0 0, 0 0, 100% 30%, 60% 0%; }
+  100% { background-position: 0 0, 0 0, 0% 0%, 100% 100%; }
 }
 
 /* --- Drop zone --- */

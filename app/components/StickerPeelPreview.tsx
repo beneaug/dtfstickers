@@ -387,16 +387,22 @@ export function StickerPeelPreview({
     inset: 0,
     pointerEvents: "none",
     WebkitMaskImage: `url(${imageUrl})`,
-    WebkitMaskSize: `${displayW}px ${displayH}px`,
+    WebkitMaskSize: "100% 100%",
     WebkitMaskRepeat: "no-repeat",
     maskImage: `url(${imageUrl})`,
+    maskSize: "100% 100%",
+    maskRepeat: "no-repeat",
   };
 
   const glossStyle: React.CSSProperties = {
     ...finishOverlayBase,
     background: [
-      "linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.05) 35%, rgba(255,255,255,0.14) 44%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.14) 56%, rgba(255,255,255,0.05) 65%, transparent 75%)",
-      "radial-gradient(ellipse at 38% 32%, rgba(255,255,255,0.08) 0%, transparent 55%)",
+      // Sharp specular highlight — the "window reflection" stripe
+      "linear-gradient(125deg, transparent 18%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0.20) 42%, rgba(255,255,255,0.42) 48.5%, rgba(255,255,255,0.48) 50.5%, rgba(255,255,255,0.42) 52.5%, rgba(255,255,255,0.20) 58%, rgba(255,255,255,0.03) 68%, transparent 82%)",
+      // Secondary softer reflection from opposite edge
+      "linear-gradient(235deg, transparent 45%, rgba(255,255,255,0.06) 58%, rgba(255,255,255,0.14) 66%, rgba(255,255,255,0.06) 74%, transparent 88%)",
+      // Radial environment light — upper-left hotspot
+      "radial-gradient(ellipse at 36% 28%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 45%, transparent 70%)",
     ].join(", "),
   };
 
