@@ -259,27 +259,52 @@ main {
 /* --- Finish overlays --- */
 
 .holo-overlay {
-  background-image:
-    /* Diffraction grating — vertical micro-scanlines (static) */
-    repeating-linear-gradient(
-      90deg,
-      #333 0px, #333 1px, #888 1px, #888 3px
+  background:
+    /* Conic iridescence — pastel diffraction radiating from light point */
+    conic-gradient(
+      from 220deg,
+      #ced9ed, #cfc7fa, #e2c6ee, #efc8dd, #d7e9db, #ced9ed
     ),
-    /* Prismatic foil — vivid full-saturation rainbow */
-    repeating-linear-gradient(
-      133deg,
-      #ff1b6b, #45caff, #ffe14d, #14f195, #a855f7, #ff1b6b
-    );
+    /* Silver metallic foil base */
+    linear-gradient(160deg, #d8d8d8, #ececec, #ddd, #f2f2f2, #e0e0e0);
   background-blend-mode: overlay;
-  background-size: 3px 3px, 300% 300%;
-  mix-blend-mode: color-dodge;
-  filter: brightness(0.75) contrast(2.2) saturate(0.7);
-  animation: holo-shift 5s ease-in-out infinite;
+  background-size: 140% 140%, 100% 100%;
+  mix-blend-mode: overlay;
+  filter: contrast(1.15);
+  animation: holo-shimmer 8s ease-in-out infinite;
 }
 
-@keyframes holo-shift {
-  0%, 100% { background-position: 0 0, 0% 0%; }
-  50%      { background-position: 0 0, 100% 100%; }
+/* Specular highlight + micro-diffraction lines */
+.holo-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 55% 30%,
+      rgba(255,255,255,0.55) 0%,
+      rgba(255,255,255,0.1) 30%,
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,0.04) 0px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
+  animation: holo-specular 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes holo-shimmer {
+  0%, 100% { background-position: 35% 30%, center; }
+  50%      { background-position: 58% 52%, center; }
+}
+
+@keyframes holo-specular {
+  0%, 100% { background-position: 40% 30%, 0 0; }
+  50%      { background-position: 55% 48%, 0 0; }
 }
 
 /* --- Drop zone --- */
