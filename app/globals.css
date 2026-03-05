@@ -258,44 +258,74 @@ main {
 
 /* --- Finish overlays --- */
 
-/* Holographic layer 1: iridescent tinting via multiply
-   multiply is the only blend that visibly tints white areas —
-   white × pastel = pastel. Physically correct: holographic vinyl
-   shows through lighter/white areas of the print. */
+/* Holographic layer 1: rainbow foil via color-dodge
+   Repeating rainbow + conic iridescence composited via background-blend-mode,
+   then color-dodged onto the sticker. The filter stack transforms the
+   gradient from neon into metallic. opacity: 0.5 prevents blowout. */
 .holo-tint {
-  background: conic-gradient(
-    from 220deg,
-    #a8ccf8, #b8a8ff, #d8a8e8, #f8a8c8, #a8e0c0, #a8ccf8
-  );
-  background-size: 140% 140%;
-  mix-blend-mode: multiply;
-  opacity: 0.35;
-  animation: holo-shimmer 8s ease-in-out infinite;
+  background:
+    repeating-linear-gradient(
+      133deg,
+      #ff6ec7 0%, #ff8a4c 8%, #ffd700 16%,
+      #7cff6b 24%, #00e5ff 32%, #7c6bff 40%, #ff6ec7 48%
+    ),
+    conic-gradient(
+      from 220deg at 50% 50%,
+      #ff6ec7, #7c6bff, #00e5ff, #7cff6b, #ffd700, #ff8a4c, #ff6ec7
+    );
+  background-size: 300% 300%, 150% 150%;
+  background-blend-mode: overlay;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.7) contrast(1.5) saturate(1.3);
+  opacity: 0.5;
+  animation: holo-shimmer 6s ease-in-out infinite;
 }
 
-/* Holographic layer 2: metallic specular sheen
-   screen blend adds light additively — more visible on dark areas,
-   gentle on light areas. Cannot darken or wash out. */
+/* Holographic layer 2: sweeping specular highlight + micro-scanlines
+   The sweep animation creates "light catching the foil" movement.
+   Screen blend adds brightness without darkening. */
 .holo-shine {
   background:
-    radial-gradient(
-      ellipse at 55% 30%,
-      rgba(255,255,255,0.40) 0%,
-      rgba(255,255,255,0.08) 40%,
-      transparent 65%
+    linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(255,255,255,0.06) 36%,
+      rgba(255,255,255,0.30) 46%,
+      rgba(255,255,255,0.55) 50%,
+      rgba(255,255,255,0.30) 54%,
+      rgba(255,255,255,0.06) 64%,
+      transparent 80%
     ),
     repeating-linear-gradient(
       90deg,
-      rgba(255,255,255,0.03) 0px,
+      rgba(255,255,255,0.04) 0px,
       transparent 1px,
-      transparent 3px
+      transparent 2px
+    ),
+    radial-gradient(
+      ellipse at 40% 30%,
+      rgba(255,255,255,0.25) 0%,
+      transparent 60%
     );
+  background-size: 200% 200%, 100% 100%, 100% 100%;
   mix-blend-mode: screen;
+  animation: holo-sweep 6s ease-in-out infinite;
 }
 
 @keyframes holo-shimmer {
-  0%, 100% { background-position: 35% 30%; }
-  50%      { background-position: 58% 52%; }
+  0%, 100% { background-position: 20% 20%, 40% 40%; }
+  33%      { background-position: 70% 30%, 55% 60%; }
+  66%      { background-position: 40% 70%, 30% 45%; }
+}
+
+@keyframes holo-sweep {
+  0%, 100% { background-position: 30% 50%, 0 0, center; }
+  50%      { background-position: 70% 50%, 0 0, center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holo-tint,
+  .holo-shine { animation: none; }
 }
 
 /* --- Drop zone --- */
