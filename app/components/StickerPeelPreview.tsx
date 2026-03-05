@@ -70,9 +70,11 @@ export function StickerPeelPreview({
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
-  const { trigger: whTrigger } = useWebHaptics({ debug: true });
+  const { trigger: whTrigger, cancel: whCancel } = useWebHaptics({ debug: true });
   const whTriggerRef = useRef(whTrigger);
   whTriggerRef.current = whTrigger;
+  const whCancelRef = useRef(whCancel);
+  whCancelRef.current = whCancel;
 
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
@@ -120,16 +122,20 @@ export function StickerPeelPreview({
 
   // Haptic + hint refs
   const firstPeelRef = useRef(false);
-  const adhesiveBreakRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
 
-  // Progressive haptic ticks — fire at regular peel intervals for texture feel
-  const HAPTIC_STEP = 0.10;
-  const lastHapticStepRef = useRef(0);
-  const lastHapticTimeRef = useRef(0);
+  // Continuous buzz during drag — re-trigger every ~900ms from pointermove
+  const lastBuzzTimeRef = useRef(0);
+  const BUZZ_INTERVAL = 900;
 
-  const safeHaptic = useCallback((preset: "selection" | "light" | "medium" | "heavy" | "success") => {
-    try { whTriggerRef.current(preset); } catch { /* silent */ }
+  const triggerBuzz = useCallback(() => {
+    try { whTriggerRef.current("buzz"); } catch { /* silent */ }
+    lastBuzzTimeRef.current = performance.now();
+  }, []);
+
+  const cancelBuzz = useCallback(() => {
+    try { whCancelRef.current(); } catch { /* silent */ }
+    lastBuzzTimeRef.current = 0;
   }, []);
 
   // --- Burst position helper ---
@@ -273,9 +279,6 @@ export function StickerPeelPreview({
         clearTimeout(resetTimeoutRef.current);
         resetTimeoutRef.current = null;
       }
-      adhesiveBreakRef.current = false;
-      lastHapticStepRef.current = Math.floor(peelRef.current / HAPTIC_STEP);
-      lastHapticTimeRef.current = 0;
       velocityTracker.current.reset();
 
       dragStartRef.current = {
@@ -285,9 +288,11 @@ export function StickerPeelPreview({
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
+      // Start continuous buzz haptic on touch
+      triggerBuzz();
+
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
-        safeHaptic("light");
         // Fade out the hint on first touch
         if (hintRef.current) {
           hintRef.current.classList.remove("peel-hint");
@@ -295,7 +300,7 @@ export function StickerPeelPreview({
         }
       }
     },
-    [safeHaptic],
+    [triggerBuzz],
   );
 
   const handlePointerMove = useCallback(
@@ -336,20 +341,12 @@ export function StickerPeelPreview({
         });
       }
 
-      // Progressive haptic ticks — fire at each peel step for texture feel
-      const currentStep = Math.floor(peelAmount / HAPTIC_STEP);
-      if (currentStep !== lastHapticStepRef.current) {
-        lastHapticStepRef.current = currentStep;
-        safeHaptic("light");
-      }
-
-      // Adhesive break haptic — stronger pop when adhesive releases
-      if (!adhesiveBreakRef.current && peelAmount > 0.18) {
-        adhesiveBreakRef.current = true;
-        safeHaptic("medium");
+      // Re-trigger buzz every ~900ms while dragging (pointermove has user gesture context)
+      if (performance.now() - lastBuzzTimeRef.current > BUZZ_INTERVAL) {
+        triggerBuzz();
       }
     },
-    [safeHaptic, applyPeelToDOM, dragRange],
+    [triggerBuzz, applyPeelToDOM, dragRange],
   );
 
   const handlePointerEnd = useCallback(
@@ -359,6 +356,9 @@ export function StickerPeelPreview({
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+
+      // Stop buzz immediately on lift
+      cancelBuzz();
 
       activePointerRef.current = null;
       const currentPeel = peelRef.current;
@@ -376,7 +376,7 @@ export function StickerPeelPreview({
       dragStartRef.current = null;
 
       if (currentPeel > SNAP_THRESHOLD) {
-        safeHaptic("success");
+        try { whTriggerRef.current("success"); } catch { /* silent */ }
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
@@ -390,16 +390,13 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        safeHaptic("light");
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
         });
       }
-
-      adhesiveBreakRef.current = false;
     },
-    [safeHaptic, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
+    [cancelBuzz, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
   );
 
   useEffect(() => {
