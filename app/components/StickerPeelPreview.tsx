@@ -154,15 +154,13 @@ export function StickerPeelPreview({
       flapRef.current.style.transform = fold.flapTransform;
     }
 
-    // Fold-line shadow — dynamic height, grows with peel
+    // Fold-line shadow — tight crease shadow
     if (foldShadowRef.current) {
-      const shadowH = Math.round(12 + peel * 20);
       foldShadowRef.current.style.left = `${fold.shadowPos.x}px`;
       foldShadowRef.current.style.top = `${fold.shadowPos.y}px`;
-      foldShadowRef.current.style.height = `${shadowH}px`;
       foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
       foldShadowRef.current.style.opacity = String(
-        peel > 0.02 ? clamp(peel * 2, 0, 0.45) : 0,
+        peel > 0.02 ? clamp(peel * 1.2, 0, 0.25) : 0,
       );
     }
 
@@ -172,7 +170,7 @@ export function StickerPeelPreview({
       foldHighlightRef.current.style.top = `${fold.shadowPos.y}px`;
       foldHighlightRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
       foldHighlightRef.current.style.opacity = String(
-        peel > 0.03 ? clamp(peel * 1.8, 0, 0.55) : 0,
+        peel > 0.03 ? clamp(peel * 1.0, 0, 0.35) : 0,
       );
     }
 
@@ -575,19 +573,19 @@ export function StickerPeelPreview({
               zIndex: 2,
             }}
           >
-            {/* Fold shadow — soft dark band along the fold line */}
+            {/* Fold shadow — tight crease line */}
             <div
               ref={foldShadowRef}
               style={{
                 position: "absolute",
                 width: shadowLength,
-                height: Math.round(12 + REST_PEEL * 20),
+                height: 8,
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
                 transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
                 background:
-                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.03) 70%, transparent 100%)",
-                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.45) : 0,
+                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.12) 40%, rgba(0,0,0,0.12) 60%, transparent 100%)",
+                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 1.2, 0, 0.25) : 0,
               }}
             />
             {/* Fold highlight — thin bright edge where vinyl curves */}
@@ -596,13 +594,13 @@ export function StickerPeelPreview({
               style={{
                 position: "absolute",
                 width: shadowLength,
-                height: 2,
+                height: 1,
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
                 transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
                 background:
-                  "linear-gradient(to right, transparent 15%, rgba(255,255,255,0.7) 35%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.7) 65%, transparent 85%)",
-                opacity: REST_PEEL > 0.03 ? clamp(REST_PEEL * 1.8, 0, 0.55) : 0,
+                  "linear-gradient(to right, transparent 20%, rgba(255,255,255,0.5) 40%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.5) 60%, transparent 80%)",
+                opacity: REST_PEEL > 0.03 ? clamp(REST_PEEL * 1.0, 0, 0.35) : 0,
               }}
             />
           </div>
