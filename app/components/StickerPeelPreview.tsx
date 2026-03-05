@@ -593,16 +593,17 @@ export function StickerPeelPreview({
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
-            <img
-              src={imageUrl}
-              alt=""
-              style={{
-                ...imgStyle,
-                filter: isSquareCut ? undefined : `url(#ef-${uid})`,
-                borderRadius: isSquareCut ? 4 : undefined,
-              }}
-              draggable={false}
-            />
+            {!isSquareCut && (
+              <img
+                src={imageUrl}
+                alt=""
+                style={{
+                  ...imgStyle,
+                  filter: `url(#ef-${uid})`,
+                }}
+                draggable={false}
+              />
+            )}
             {finish === "gloss" && <div style={glossStyle} />}
             {finish === "holographic" && (
               <>
