@@ -9,7 +9,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { haptic } from "../lib/haptics";
+import { useWebHaptics } from "web-haptics/react";
 import { clamp } from "../lib/utils";
 import {
   stepSpring,
@@ -70,6 +70,10 @@ export function StickerPeelPreview({
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
+  const { trigger: whTrigger } = useWebHaptics({ debug: true });
+  const whTriggerRef = useRef(whTrigger);
+  whTriggerRef.current = whTrigger;
+
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
   const dragRange = getDragRange(displaySize);
@@ -91,7 +95,7 @@ export function StickerPeelPreview({
   displayDimsRef.current = { w: displayW, h: displayH };
 
   // DOM refs
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
@@ -125,7 +129,7 @@ export function StickerPeelPreview({
   const lastHapticTimeRef = useRef(0);
 
   const safeHaptic = useCallback((preset: "selection" | "light" | "medium" | "heavy" | "success") => {
-    try { haptic(preset); } catch { /* silent */ }
+    try { whTriggerRef.current(preset); } catch { /* silent */ }
   }, []);
 
   // --- Burst position helper ---
@@ -237,13 +241,8 @@ export function StickerPeelPreview({
 
         applyPeelToDOM();
 
-        // Haptic ticks during spring animation — textured snap feel
-        const prevStep = Math.floor(prevPeel / 0.10);
-        const curStep = Math.floor(peelRef.current / 0.10);
-        if (curStep !== prevStep && now - lastHapticTimeRef.current > 80) {
-          lastHapticTimeRef.current = now;
-          try { haptic("light"); } catch { /* */ }
-        }
+        // NOTE: Haptics removed from rAF — iOS Safari has no user gesture
+        // context inside requestAnimationFrame, so haptic calls are silent.
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
@@ -262,7 +261,7 @@ export function StickerPeelPreview({
   // --- Pointer Handlers ---
 
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (activePointerRef.current !== null) return;
 
@@ -300,7 +299,7 @@ export function StickerPeelPreview({
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current
@@ -354,7 +353,7 @@ export function StickerPeelPreview({
   );
 
   const handlePointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
 
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -465,10 +464,21 @@ export function StickerPeelPreview({
         transition: "background-color 0.6s ease",
       }}
     >
-      <div
+      <button
+        type="button"
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center select-none"
-        style={{ touchAction: "none" }}
+        style={{
+          touchAction: "none",
+          appearance: "none",
+          background: "none",
+          border: "none",
+          padding: 0,
+          font: "inherit",
+          color: "inherit",
+          textAlign: "inherit" as const,
+          cursor: "default",
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
@@ -694,14 +704,24 @@ export function StickerPeelPreview({
             />
           </div>
         </div>
-      </div>
+      </button>
 
-      <p
-        ref={hintRef}
-        className="peel-hint absolute bottom-3 left-0 w-full text-center text-[11px] tracking-[0.04em] text-muted"
-      >
-        Go on, peel it
-      </p>
+      <div className="absolute bottom-3 left-0 w-full text-center">
+        <p
+          ref={hintRef}
+          className="peel-hint text-[11px] tracking-[0.04em] text-muted"
+        >
+          Go on, peel it
+        </p>
+        <button
+          type="button"
+          className="mt-1 text-[10px] tracking-[0.03em] text-muted/50 hover:text-muted/80 transition-colors"
+          style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
+          onClick={() => { try { whTriggerRef.current("medium"); } catch {} }}
+        >
+          tap to test haptics
+        </button>
+      </div>
     </div>
   );
 }
