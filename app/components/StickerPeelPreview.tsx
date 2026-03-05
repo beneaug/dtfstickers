@@ -60,10 +60,12 @@ function getDragRange(displaySize: number): number {
 }
 
 // --- Audio feedback for peel drag ---
-// Produces subtle filtered noise clicks via Web Audio API.
-// Works on all platforms once AudioContext is unlocked.
+// Replicates web-haptics' proven audio: bandpass-filtered noise with exponential
+// decay envelope. Parameters matched exactly to haptics.lochie.me source.
 class PeelAudio {
   private ctx: AudioContext | null = null;
+  private filter: BiquadFilterNode | null = null;
+  private gain: GainNode | null = null;
   private buf: AudioBuffer | null = null;
 
   init() {
@@ -73,27 +75,38 @@ class PeelAudio {
       const AC = window.AudioContext || (window as any).webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
+      // Persistent filter + gain chain (web-haptics reuses these)
+      this.filter = this.ctx.createBiquadFilter();
+      this.filter.type = "bandpass";
+      this.filter.frequency.value = 4000;
+      this.filter.Q.value = 8; // Sharp resonant click (web-haptics uses 8)
+      this.gain = this.ctx.createGain();
+      this.filter.connect(this.gain);
+      this.gain.connect(this.ctx.destination);
+      // Pre-allocate 4ms mono noise buffer
       const sr = this.ctx.sampleRate;
-      const n = Math.ceil(sr * 0.004); // 4ms noise burst
-      this.buf = this.ctx.createBuffer(1, n, sr);
-      const d = this.buf.getChannelData(0);
-      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+      this.buf = this.ctx.createBuffer(1, Math.ceil(sr * 0.004), sr);
       this.ctx.resume();
     } catch { /* unsupported */ }
   }
 
-  tick(volume = 0.12) {
-    if (!this.ctx || !this.buf || this.ctx.state !== "running") return;
+  /** Play one click. intensity 0-1 controls volume + pitch (matches web-haptics playClick). */
+  tick(intensity = 0.5) {
+    if (!this.ctx || !this.filter || !this.gain || !this.buf || this.ctx.state !== "running") return;
     try {
+      // Regenerate noise with exponential decay envelope (web-haptics: Math.exp(-i/25))
+      const d = this.buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / 25);
+      // Gain: 0.5 × intensity (web-haptics exact formula)
+      this.gain.gain.value = 0.5 * intensity;
+      // Frequency: 2000-4000Hz scaled by intensity, ±15% random variation
+      const baseFreq = 2000 + intensity * 2000;
+      this.filter.frequency.value = baseFreq * (1 + (Math.random() - 0.5) * 0.3);
+      // Play
       const s = this.ctx.createBufferSource();
       s.buffer = this.buf;
-      const f = this.ctx.createBiquadFilter();
-      f.type = "bandpass";
-      f.frequency.value = 3200;
-      f.Q.value = 1.0;
-      const g = this.ctx.createGain();
-      g.gain.value = volume;
-      s.connect(f).connect(g).connect(this.ctx.destination);
+      s.connect(this.filter);
+      s.onended = () => s.disconnect();
       s.start();
     } catch { /* silent */ }
   }
@@ -136,9 +149,10 @@ export function StickerPeelPreview({
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
 
-  // Audio feedback for drag (filtered noise clicks via Web Audio)
+  // Audio buzz feedback for drag (matches web-haptics audio engine)
   const peelAudioRef = useRef<PeelAudio | null>(null);
-  const lastTickRef = useRef(0);
+  const buzzRafRef = useRef<number | null>(null);
+  const buzzLastTickRef = useRef(0);
 
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
@@ -343,10 +357,27 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       snappedRef.current = false;
 
-      // Try to unlock AudioContext (may work on pointerdown for some browsers)
+      // Unlock audio + start buzz rAF loop
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
       peelAudioRef.current.init();
-      lastTickRef.current = 0;
+      buzzLastTickRef.current = 0;
+      // Continuous buzz loop: ticks at variable rate based on peel amount.
+      // At rest (0.08): ~10/sec. At full peel (1.0): ~62/sec (matches web-haptics buzz).
+      if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
+      const audio = peelAudioRef.current;
+      const buzzLoop = (ts: number) => {
+        if (activePointerRef.current === null) { buzzRafRef.current = null; return; }
+        const peel = peelRef.current;
+        // Interval: 16ms at full peel → 100ms at rest (web-haptics formula: 16 + (1-intensity)*84)
+        const interval = 16 + (1 - peel) * 84;
+        if (ts - buzzLastTickRef.current >= interval && peel > REST_PEEL + 0.02) {
+          audio.tick(peel);
+          if (isAndroid) { try { navigator.vibrate?.(6); } catch { /* */ } }
+          buzzLastTickRef.current = ts;
+        }
+        buzzRafRef.current = requestAnimationFrame(buzzLoop);
+      };
+      buzzRafRef.current = requestAnimationFrame(buzzLoop);
 
       if (resetTimeoutRef.current) {
         clearTimeout(resetTimeoutRef.current);
@@ -411,16 +442,7 @@ export function StickerPeelPreview({
         });
       }
 
-      // Audio tick + Android vibration during drag
-      const now = performance.now();
-      if (now - lastTickRef.current > 60) {
-        // Volume scales with peel: subtle at start, stronger as sticker peels
-        peelAudioRef.current?.tick(0.06 + peelAmount * 0.14);
-        if (isAndroid) {
-          try { navigator.vibrate?.(6); } catch { /* silent */ }
-        }
-        lastTickRef.current = now;
-      }
+      // Audio buzz handled by rAF loop started in pointerDown
     },
     [applyPeelToDOM, dragRange],
   );
@@ -433,7 +455,8 @@ export function StickerPeelPreview({
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
-      activePointerRef.current = null;
+      activePointerRef.current = null; // Stops the buzz rAF loop
+      if (buzzRafRef.current) { cancelAnimationFrame(buzzRafRef.current); buzzRafRef.current = null; }
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
@@ -452,7 +475,7 @@ export function StickerPeelPreview({
       // fires the Taptic Engine via checkbox-switch trick.
       if (currentPeel > SNAP_THRESHOLD) {
         fireHaptic();
-        peelAudioRef.current?.tick(0.25);
+        peelAudioRef.current?.tick(1.0); // Loud snap click
         if (isAndroid) {
           try { navigator.vibrate?.([15, 30, 20]); } catch { /* silent */ }
         }
@@ -470,7 +493,7 @@ export function StickerPeelPreview({
         setTimeout(() => onSnap?.(), 120);
       } else {
         fireHaptic();
-        peelAudioRef.current?.tick(0.1);
+        peelAudioRef.current?.tick(0.4); // Soft release click
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
@@ -483,9 +506,8 @@ export function StickerPeelPreview({
   useEffect(() => {
     return () => {
       animatingRef.current = false;
-      if (resetTimeoutRef.current) {
-        clearTimeout(resetTimeoutRef.current);
-      }
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+      if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
     };
   }, []);
 
@@ -786,12 +808,19 @@ export function StickerPeelPreview({
           style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
           onClick={() => {
             if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
-            peelAudioRef.current.init();
+            const audio = peelAudioRef.current;
+            audio.init();
             fireHaptic();
-            // Rapid audio ticks = buzz effect
-            for (let i = 1; i <= 12; i++) {
-              setTimeout(() => peelAudioRef.current?.tick(0.15), i * 50);
-            }
+            // rAF-based buzz: ~62 clicks/sec for 1s (matches web-haptics buzz preset exactly)
+            let start = 0;
+            let last = 0;
+            const buzzTest = (ts: number) => {
+              if (!start) start = ts;
+              if (ts - start >= 1000) return;
+              if (ts - last >= 16) { audio.tick(1.0); last = ts; }
+              requestAnimationFrame(buzzTest);
+            };
+            requestAnimationFrame(buzzTest);
           }}
         >
           tap to test haptics
