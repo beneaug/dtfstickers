@@ -195,6 +195,7 @@ export interface FoldResult {
   flapTransform: string; // CSS transform to reflect flap across fold line
   shadowPos: Vec2;    // center point of fold line on sticker
   shadowAngle: number; // angle of fold line in degrees
+  foldLength: number; // actual length of fold line within sticker bounds
 }
 
 /**
@@ -317,5 +318,24 @@ export function computeFold(angle: number, peel: number, w: number, h: number): 
   // Shadow angle: perpendicular to fold normal (the fold line direction)
   const shadowAngle = (Math.atan2(nx, -ny) * 180) / Math.PI;
 
-  return { mainClip, flapClip, flapTransform, shadowPos, shadowAngle };
+  // Fold line length — find where the fold line crosses the sticker rectangle
+  const edges: [Vec2, Vec2][] = [
+    [corners[0], corners[1]],
+    [corners[1], corners[2]],
+    [corners[2], corners[3]],
+    [corners[3], corners[0]],
+  ];
+  const foldEnds: Vec2[] = [];
+  for (const [ea, eb] of edges) {
+    const da = signedDist(ea, foldPt, nx, ny);
+    const db = signedDist(eb, foldPt, nx, ny);
+    if ((da > 0.001 && db < -0.001) || (da < -0.001 && db > 0.001)) {
+      foldEnds.push(segIntersect(ea, eb, foldPt, nx, ny));
+    }
+  }
+  const foldLength = foldEnds.length >= 2
+    ? Math.sqrt((foldEnds[1].x - foldEnds[0].x) ** 2 + (foldEnds[1].y - foldEnds[0].y) ** 2)
+    : 0;
+
+  return { mainClip, flapClip, flapTransform, shadowPos, shadowAngle, foldLength };
 }

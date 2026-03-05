@@ -154,8 +154,9 @@ export function StickerPeelPreview({
       flapRef.current.style.transform = fold.flapTransform;
     }
 
-    // Fold-line shadow — tight crease shadow
+    // Fold-line shadow — matches actual fold intersection length
     if (foldShadowRef.current) {
+      foldShadowRef.current.style.width = `${Math.round(fold.foldLength)}px`;
       foldShadowRef.current.style.left = `${fold.shadowPos.x}px`;
       foldShadowRef.current.style.top = `${fold.shadowPos.y}px`;
       foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
@@ -164,8 +165,9 @@ export function StickerPeelPreview({
       );
     }
 
-    // Fold-line highlight — thin bright edge where vinyl curves
+    // Fold-line highlight — matches actual fold intersection length
     if (foldHighlightRef.current) {
+      foldHighlightRef.current.style.width = `${Math.round(fold.foldLength)}px`;
       foldHighlightRef.current.style.left = `${fold.shadowPos.x}px`;
       foldHighlightRef.current.style.top = `${fold.shadowPos.y}px`;
       foldHighlightRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
@@ -428,8 +430,8 @@ export function StickerPeelPreview({
     ].join(", "),
   };
 
-  // Shadow needs to span the full sticker diagonal
-  const shadowLength = Math.ceil(Math.sqrt(displayW * displayW + displayH * displayH)) + 20;
+  // Initial fold length for first paint
+  const initFoldLength = Math.round(initFold.foldLength);
 
   /* eslint-disable @next/next/no-img-element */
   return (
@@ -573,12 +575,12 @@ export function StickerPeelPreview({
               zIndex: 2,
             }}
           >
-            {/* Fold shadow — tight crease line */}
+            {/* Fold shadow — tight crease line, length matches fold */}
             <div
               ref={foldShadowRef}
               style={{
                 position: "absolute",
-                width: shadowLength,
+                width: initFoldLength,
                 height: 8,
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
@@ -588,18 +590,18 @@ export function StickerPeelPreview({
                 opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 1.2, 0, 0.25) : 0,
               }}
             />
-            {/* Fold highlight — thin bright edge where vinyl curves */}
+            {/* Fold highlight — thin bright edge, length matches fold */}
             <div
               ref={foldHighlightRef}
               style={{
                 position: "absolute",
-                width: shadowLength,
+                width: initFoldLength,
                 height: 1,
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
                 transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
                 background:
-                  "linear-gradient(to right, transparent 20%, rgba(255,255,255,0.5) 40%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.5) 60%, transparent 80%)",
+                  "linear-gradient(to right, transparent 10%, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.5) 70%, transparent 90%)",
                 opacity: REST_PEEL > 0.03 ? clamp(REST_PEEL * 1.0, 0, 0.35) : 0,
               }}
             />
