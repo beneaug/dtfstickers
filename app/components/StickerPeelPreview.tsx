@@ -57,7 +57,7 @@ function getStrokeWidth(displaySize: number): number {
 }
 
 function getDragRange(displaySize: number): number {
-  return Math.max(220, displaySize * 1.6);
+  return Math.max(280, displaySize * 2.0);
 }
 
 
@@ -70,11 +70,9 @@ export function StickerPeelPreview({
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
-  const { trigger: whTrigger, cancel: whCancel } = useWebHaptics({ debug: true });
+  const { trigger: whTrigger } = useWebHaptics({ debug: true });
   const whTriggerRef = useRef(whTrigger);
   whTriggerRef.current = whTrigger;
-  const whCancelRef = useRef(whCancel);
-  whCancelRef.current = whCancel;
 
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
@@ -103,6 +101,28 @@ export function StickerPeelPreview({
   const foldShadowRef = useRef<HTMLDivElement>(null);
   const foldHighlightRef = useRef<HTMLDivElement>(null);
 
+  // Persistent hidden checkbox-switch for direct haptic triggering.
+  // Bypasses web-haptics library during drag because its async `ensureAudio()`
+  // breaks user gesture context on iOS Safari. Clicking this element directly
+  // from pointer event handlers is fully synchronous = guaranteed haptic.
+  const hapticCheckboxRef = useRef<HTMLLabelElement | null>(null);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const label = document.createElement("label");
+    label.style.display = "none";
+    label.ariaHidden = "true";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("switch", "");
+    label.appendChild(input);
+    document.body.appendChild(label);
+    hapticCheckboxRef.current = label;
+    return () => {
+      label.remove();
+      hapticCheckboxRef.current = null;
+    };
+  }, []);
+
   // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
   const angleRef = useRef(DEFAULT_DRAG_ANGLE);
@@ -124,18 +144,11 @@ export function StickerPeelPreview({
   const firstPeelRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
 
-  // Continuous buzz during drag — re-trigger every ~900ms from pointermove
-  const lastBuzzTimeRef = useRef(0);
-  const BUZZ_INTERVAL = 900;
-
-  const triggerBuzz = useCallback(() => {
-    try { whTriggerRef.current("buzz"); } catch { /* silent */ }
-    lastBuzzTimeRef.current = performance.now();
-  }, []);
-
-  const cancelBuzz = useCallback(() => {
-    try { whCancelRef.current(); } catch { /* silent */ }
-    lastBuzzTimeRef.current = 0;
+  // Direct haptic tick — clicks the persistent hidden checkbox synchronously.
+  // Called from pointer event handlers which have user gesture context on iOS.
+  // At ~60Hz pointermove rate this produces continuous buzzing.
+  const hapticTick = useCallback(() => {
+    try { hapticCheckboxRef.current?.click(); } catch { /* silent */ }
   }, []);
 
   // --- Burst position helper ---
@@ -288,8 +301,8 @@ export function StickerPeelPreview({
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
-      // Start continuous buzz haptic on touch
-      triggerBuzz();
+      // Initial haptic tick on touch
+      hapticTick();
 
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
@@ -300,7 +313,7 @@ export function StickerPeelPreview({
         }
       }
     },
-    [triggerBuzz],
+    [hapticTick],
   );
 
   const handlePointerMove = useCallback(
@@ -320,8 +333,8 @@ export function StickerPeelPreview({
 
       // Smooth angle blending — fluid direction changes, no jitter
       const rawAngle = continuousDragAngle(dx, dy, angleRef.current);
-      // Blend gently — prevents squirrely direction changes on mobile
-      const blend = clamp((dist - 12) / 120, 0, 0.15);
+      // Blend very gently — large dead zone + slow ramp prevents squirrely mobile input
+      const blend = clamp((dist - 40) / 250, 0, 0.06);
       angleRef.current = lerpAngle(angleRef.current, rawAngle, blend);
 
       const rawDisplacement = clamp(dist / dragRange, 0, 1);
@@ -341,12 +354,12 @@ export function StickerPeelPreview({
         });
       }
 
-      // Re-trigger buzz every ~900ms while dragging (pointermove has user gesture context)
-      if (performance.now() - lastBuzzTimeRef.current > BUZZ_INTERVAL) {
-        triggerBuzz();
-      }
+      // Continuous haptic buzz — click checkbox on every pointermove (~60Hz).
+      // Each click is synchronous in the pointer event handler = guaranteed
+      // user gesture context on iOS Safari.
+      hapticTick();
     },
-    [triggerBuzz, applyPeelToDOM, dragRange],
+    [hapticTick, applyPeelToDOM, dragRange],
   );
 
   const handlePointerEnd = useCallback(
@@ -356,9 +369,6 @@ export function StickerPeelPreview({
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
-
-      // Stop buzz immediately on lift
-      cancelBuzz();
 
       activePointerRef.current = null;
       const currentPeel = peelRef.current;
@@ -376,7 +386,8 @@ export function StickerPeelPreview({
       dragStartRef.current = null;
 
       if (currentPeel > SNAP_THRESHOLD) {
-        try { whTriggerRef.current("success"); } catch { /* silent */ }
+        // Success haptic — double tick
+        hapticTick();
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
@@ -396,7 +407,7 @@ export function StickerPeelPreview({
         });
       }
     },
-    [cancelBuzz, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
+    [hapticTick, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
   );
 
   useEffect(() => {
