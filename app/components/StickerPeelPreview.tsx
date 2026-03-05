@@ -95,6 +95,8 @@ export function StickerPeelPreview({
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
+  const foldHighlightRef = useRef<HTMLDivElement>(null);
+  const flapCurlRef = useRef<HTMLDivElement>(null);
 
   // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
@@ -151,15 +153,45 @@ export function StickerPeelPreview({
     if (flapRef.current) {
       flapRef.current.style.clipPath = fold.flapClip;
       flapRef.current.style.transform = fold.flapTransform;
+
+      // Elevation shadow — grows with peel, simulates lift off the surface
+      const shadowBlur = Math.round(peel * 18);
+      const shadowY = Math.round(peel * 6);
+      const shadowAlpha = clamp(peel * 0.35, 0, 0.22).toFixed(3);
+      flapRef.current.style.filter = peel > 0.02
+        ? `drop-shadow(0px ${shadowY}px ${shadowBlur}px rgba(0,0,0,${shadowAlpha}))`
+        : "none";
     }
 
+    // Fold-line shadow — dynamic height, grows with peel
     if (foldShadowRef.current) {
+      const shadowH = Math.round(12 + peel * 20);
       foldShadowRef.current.style.left = `${fold.shadowPos.x}px`;
       foldShadowRef.current.style.top = `${fold.shadowPos.y}px`;
+      foldShadowRef.current.style.height = `${shadowH}px`;
       foldShadowRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
       foldShadowRef.current.style.opacity = String(
-        peel > 0.02 ? clamp(peel * 1.5, 0, 0.35) : 0,
+        peel > 0.02 ? clamp(peel * 2, 0, 0.45) : 0,
       );
+    }
+
+    // Fold-line highlight — thin bright edge where vinyl curves
+    if (foldHighlightRef.current) {
+      foldHighlightRef.current.style.left = `${fold.shadowPos.x}px`;
+      foldHighlightRef.current.style.top = `${fold.shadowPos.y}px`;
+      foldHighlightRef.current.style.transform = `translate(-50%, -50%) rotate(${fold.shadowAngle}deg)`;
+      foldHighlightRef.current.style.opacity = String(
+        peel > 0.03 ? clamp(peel * 1.8, 0, 0.55) : 0,
+      );
+    }
+
+    // Curl gradient on flap — darker near fold edge, fades out
+    if (flapCurlRef.current) {
+      const curlOpacity = clamp(peel * 0.6, 0, 0.18);
+      flapCurlRef.current.style.opacity = String(peel > 0.02 ? curlOpacity : 0);
+      // Rotate gradient to align with fold line
+      flapCurlRef.current.style.background =
+        `linear-gradient(${fold.shadowAngle + 90}deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.08) 30%, transparent 60%)`;
     }
   }, []);
 
@@ -550,7 +582,7 @@ export function StickerPeelPreview({
             )}
           </div>
 
-          {/* Fold shadow — clipped to sticker bounds */}
+          {/* Fold shadow + highlight — clipped to sticker bounds */}
           <div
             style={{
               position: "absolute",
@@ -560,18 +592,34 @@ export function StickerPeelPreview({
               zIndex: 2,
             }}
           >
+            {/* Fold shadow — soft dark band along the fold line */}
             <div
               ref={foldShadowRef}
               style={{
                 position: "absolute",
                 width: shadowLength,
-                height: 20,
+                height: Math.round(12 + REST_PEEL * 20),
                 left: initFold.shadowPos.x,
                 top: initFold.shadowPos.y,
                 transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
                 background:
-                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.06) 40%, rgba(0,0,0,0.04) 60%, transparent 100%)",
-                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 1.5, 0, 0.35) : 0,
+                  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.03) 70%, transparent 100%)",
+                opacity: REST_PEEL > 0.02 ? clamp(REST_PEEL * 2, 0, 0.45) : 0,
+              }}
+            />
+            {/* Fold highlight — thin bright edge where vinyl curves */}
+            <div
+              ref={foldHighlightRef}
+              style={{
+                position: "absolute",
+                width: shadowLength,
+                height: 2,
+                left: initFold.shadowPos.x,
+                top: initFold.shadowPos.y,
+                transform: `translate(-50%, -50%) rotate(${initFold.shadowAngle}deg)`,
+                background:
+                  "linear-gradient(to right, transparent 15%, rgba(255,255,255,0.7) 35%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.7) 65%, transparent 85%)",
+                opacity: REST_PEEL > 0.03 ? clamp(REST_PEEL * 1.8, 0, 0.55) : 0,
               }}
             />
           </div>
@@ -611,6 +659,17 @@ export function StickerPeelPreview({
                 <div className="holo-shine" style={finishOverlayBase} />
               </>
             )}
+            {/* Curl gradient — darkening near the fold edge for 3D depth */}
+            <div
+              ref={flapCurlRef}
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                opacity: 0,
+                background: `linear-gradient(${initFold.shadowAngle + 90}deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.08) 30%, transparent 60%)`,
+              }}
+            />
           </div>
         </div>
       </div>
