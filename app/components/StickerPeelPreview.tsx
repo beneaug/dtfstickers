@@ -96,7 +96,6 @@ export function StickerPeelPreview({
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
   const foldHighlightRef = useRef<HTMLDivElement>(null);
-  const flapCurlRef = useRef<HTMLDivElement>(null);
 
   // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
@@ -153,14 +152,6 @@ export function StickerPeelPreview({
     if (flapRef.current) {
       flapRef.current.style.clipPath = fold.flapClip;
       flapRef.current.style.transform = fold.flapTransform;
-
-      // Elevation shadow — grows with peel, simulates lift off the surface
-      const shadowBlur = Math.round(peel * 18);
-      const shadowY = Math.round(peel * 6);
-      const shadowAlpha = clamp(peel * 0.35, 0, 0.22).toFixed(3);
-      flapRef.current.style.filter = peel > 0.02
-        ? `drop-shadow(0px ${shadowY}px ${shadowBlur}px rgba(0,0,0,${shadowAlpha}))`
-        : "none";
     }
 
     // Fold-line shadow — dynamic height, grows with peel
@@ -185,14 +176,6 @@ export function StickerPeelPreview({
       );
     }
 
-    // Curl gradient on flap — darker near fold edge, fades out
-    if (flapCurlRef.current) {
-      const curlOpacity = clamp(peel * 0.6, 0, 0.18);
-      flapCurlRef.current.style.opacity = String(peel > 0.02 ? curlOpacity : 0);
-      // Rotate gradient to align with fold line
-      flapCurlRef.current.style.background =
-        `linear-gradient(${fold.shadowAngle + 90}deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.08) 30%, transparent 60%)`;
-    }
   }, []);
 
   // Reset on image/size change
@@ -659,17 +642,6 @@ export function StickerPeelPreview({
                 <div className="holo-shine" style={finishOverlayBase} />
               </>
             )}
-            {/* Curl gradient — darkening near the fold edge for 3D depth */}
-            <div
-              ref={flapCurlRef}
-              style={{
-                position: "absolute",
-                inset: 0,
-                pointerEvents: "none",
-                opacity: 0,
-                background: `linear-gradient(${initFold.shadowAngle + 90}deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.08) 30%, transparent 60%)`,
-              }}
-            />
           </div>
         </div>
       </div>
