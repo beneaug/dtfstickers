@@ -258,28 +258,38 @@ main {
 
 /* --- Finish overlays --- */
 
-.holo-overlay {
+/* Holographic layer 1: iridescent color tinting
+   color blend applies hue/saturation ONLY — luminosity preserved perfectly,
+   so this can never wash out the sticker regardless of opacity */
+.holo-tint {
   background: conic-gradient(
     from 220deg,
-    #ced9ed, #cfc7fa, #e2c6ee, #efc8dd, #d7e9db, #ced9ed
+    #a0c4f0, #b0a0ff, #d0a0e0, #f0a0c0, #a0d8b8, #a0c4f0
   );
   background-size: 140% 140%;
-  mix-blend-mode: overlay;
-  opacity: 0.65;
+  mix-blend-mode: color;
+  opacity: 0.55;
   animation: holo-shimmer 8s ease-in-out infinite;
 }
 
-/* Specular highlight — subtle bright spot where light hits the foil */
-.holo-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at 55% 30%,
-    rgba(255,255,255,0.18) 0%,
-    transparent 45%
-  );
-  pointer-events: none;
+/* Holographic layer 2: metallic specular sheen
+   screen blend adds light additively — more visible on dark areas,
+   gentle on light areas. Cannot darken or wash out. */
+.holo-shine {
+  background:
+    radial-gradient(
+      ellipse at 55% 30%,
+      rgba(255,255,255,0.40) 0%,
+      rgba(255,255,255,0.08) 40%,
+      transparent 65%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,0.03) 0px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
 }
 
 @keyframes holo-shimmer {

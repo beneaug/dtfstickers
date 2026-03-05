@@ -517,7 +517,10 @@ export function StickerPeelPreview({
             />
             {finish === "gloss" && <div style={glossStyle} />}
             {finish === "holographic" && (
-              <div className="holo-overlay" style={finishOverlayBase} />
+              <>
+                <div className="holo-tint" style={finishOverlayBase} />
+                <div className="holo-shine" style={finishOverlayBase} />
+              </>
             )}
           </div>
 
@@ -573,7 +576,10 @@ export function StickerPeelPreview({
             />
             {finish === "gloss" && <div style={glossStyle} />}
             {finish === "holographic" && (
-              <div className="holo-overlay" style={finishOverlayBase} />
+              <>
+                <div className="holo-tint" style={finishOverlayBase} />
+                <div className="holo-shine" style={finishOverlayBase} />
+              </>
             )}
           </div>
         </div>
