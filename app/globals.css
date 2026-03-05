@@ -259,52 +259,32 @@ main {
 /* --- Finish overlays --- */
 
 .holo-overlay {
-  background:
-    /* Conic iridescence — pastel diffraction radiating from light point */
-    conic-gradient(
-      from 220deg,
-      #ced9ed, #cfc7fa, #e2c6ee, #efc8dd, #d7e9db, #ced9ed
-    ),
-    /* Silver metallic foil base */
-    linear-gradient(160deg, #d8d8d8, #ececec, #ddd, #f2f2f2, #e0e0e0);
-  background-blend-mode: overlay;
-  background-size: 140% 140%, 100% 100%;
+  background: conic-gradient(
+    from 220deg,
+    #ced9ed, #cfc7fa, #e2c6ee, #efc8dd, #d7e9db, #ced9ed
+  );
+  background-size: 140% 140%;
   mix-blend-mode: overlay;
-  filter: contrast(1.15);
+  opacity: 0.65;
   animation: holo-shimmer 8s ease-in-out infinite;
 }
 
-/* Specular highlight + micro-diffraction lines */
+/* Specular highlight — subtle bright spot where light hits the foil */
 .holo-overlay::after {
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(
-      ellipse at 55% 30%,
-      rgba(255,255,255,0.55) 0%,
-      rgba(255,255,255,0.1) 30%,
-      transparent 60%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255,255,255,0.04) 0px,
-      transparent 1px,
-      transparent 3px
-    );
-  mix-blend-mode: screen;
-  animation: holo-specular 8s ease-in-out infinite;
+  background: radial-gradient(
+    ellipse at 55% 30%,
+    rgba(255,255,255,0.18) 0%,
+    transparent 45%
+  );
   pointer-events: none;
 }
 
 @keyframes holo-shimmer {
-  0%, 100% { background-position: 35% 30%, center; }
-  50%      { background-position: 58% 52%, center; }
-}
-
-@keyframes holo-specular {
-  0%, 100% { background-position: 40% 30%, 0 0; }
-  50%      { background-position: 55% 48%, 0 0; }
+  0%, 100% { background-position: 35% 30%; }
+  50%      { background-position: 58% 52%; }
 }
 
 /* --- Drop zone --- */
