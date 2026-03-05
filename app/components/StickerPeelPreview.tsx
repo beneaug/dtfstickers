@@ -9,7 +9,6 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useWebHaptics } from "web-haptics/react";
 import { clamp } from "../lib/utils";
 import {
   stepSpring,
@@ -60,11 +59,72 @@ function getDragRange(displaySize: number): number {
   return Math.max(280, displaySize * 2.0);
 }
 
-// Detect touch device — matches the web-haptics demo site's approach.
-// On touch devices debug is OFF so trigger() fires the first checkbox click
-// synchronously (no `await ensureAudio()` to break user gesture context).
-const isTouchDevice =
-  typeof window !== "undefined" && "ontouchstart" in window;
+// --- Audio feedback for peel drag ---
+// Produces subtle filtered noise clicks via Web Audio API.
+// Works on all platforms once AudioContext is unlocked.
+class PeelAudio {
+  private ctx: AudioContext | null = null;
+  private buf: AudioBuffer | null = null;
+
+  init() {
+    if (this.ctx || typeof window === "undefined") return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      const sr = this.ctx.sampleRate;
+      const n = Math.ceil(sr * 0.004); // 4ms noise burst
+      this.buf = this.ctx.createBuffer(1, n, sr);
+      const d = this.buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+      this.ctx.resume();
+    } catch { /* unsupported */ }
+  }
+
+  tick(volume = 0.12) {
+    if (!this.ctx || !this.buf || this.ctx.state !== "running") return;
+    try {
+      const s = this.ctx.createBufferSource();
+      s.buffer = this.buf;
+      const f = this.ctx.createBiquadFilter();
+      f.type = "bandpass";
+      f.frequency.value = 3200;
+      f.Q.value = 1.0;
+      const g = this.ctx.createGain();
+      g.gain.value = volume;
+      s.connect(f).connect(g).connect(this.ctx.destination);
+      s.start();
+    } catch { /* silent */ }
+  }
+}
+
+// --- Direct iOS haptic via checkbox-switch ---
+// Synchronous label.click() toggles a hidden <input type="checkbox" switch>,
+// triggering the Taptic Engine on iOS Safari 18+.
+// MUST be called from an activation-triggering event (pointerup, click, touchend).
+let _hapticLabel: HTMLLabelElement | null = null;
+
+function fireHaptic() {
+  if (typeof document === "undefined") return;
+  if (!_hapticLabel) {
+    const label = document.createElement("label");
+    label.style.cssText =
+      "position:fixed;left:-9999px;top:0;overflow:hidden;pointer-events:none;";
+    label.ariaHidden = "true";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("switch", "");
+    input.style.cssText = "display:block;width:1px;height:1px;opacity:0.01;";
+    label.appendChild(input);
+    document.body.appendChild(label);
+    _hapticLabel = label;
+  }
+  _hapticLabel.click();
+}
+
+const isAndroid =
+  typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
 
 export function StickerPeelPreview({
   imageUrl,
@@ -76,19 +136,9 @@ export function StickerPeelPreview({
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
 
-  // Main haptic instance — debug OFF on touch so trigger() is fully synchronous.
-  // On desktop, debug ON for audible click feedback during development.
-  const { trigger: whTrigger } = useWebHaptics({
-    debug: !isTouchDevice,
-  });
-  const whTriggerRef = useRef(whTrigger);
-  whTriggerRef.current = whTrigger;
-
-  // Separate debug-enabled instance for the test button only.
-  // onClick has a long user-activation window so the async ensureAudio() is OK.
-  const { trigger: testTrigger } = useWebHaptics({ debug: true });
-  const testTriggerRef = useRef(testTrigger);
-  testTriggerRef.current = testTrigger;
+  // Audio feedback for drag (filtered noise clicks via Web Audio)
+  const peelAudioRef = useRef<PeelAudio | null>(null);
+  const lastTickRef = useRef(0);
 
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
@@ -209,6 +259,23 @@ export function StickerPeelPreview({
     if (imgDims) requestAnimationFrame(() => applyPeelToDOM());
   }, [imgDims, applyPeelToDOM]);
 
+  // Unlock AudioContext on first user interaction so drag audio works immediately
+  useEffect(() => {
+    if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
+    const audio = peelAudioRef.current;
+    const unlock = () => {
+      audio.init();
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+    document.addEventListener("touchstart", unlock, { passive: true });
+    document.addEventListener("click", unlock);
+    return () => {
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+  }, []);
+
   // --- Spring Animation Loop ---
 
   const runSpringAnimation = useCallback(
@@ -262,22 +329,10 @@ export function StickerPeelPreview({
 
   // --- Pointer Handlers ---
   //
-  // Haptic feedback constraints on iOS Safari (researched Jan 2025 WebKit source):
-  //
-  // WebKit commit dfb3971 requires `processingUserGesture === true` for the
-  // checkbox-switch haptic to fire. The activation-triggering events for touch are:
-  //   - pointerup (touch/pen only)
-  //   - touchend
-  //   - click
-  //
-  // NOT activation-triggering:
-  //   - pointerdown (for touch — only for mouse)
-  //   - pointermove (never)
-  //   - requestAnimationFrame callbacks
-  //   - setTimeout/setInterval callbacks
-  //
-  // This means continuous haptics during a finger drag is impossible on iOS Safari.
-  // We fire haptics on pointerup (snap/release) where gesture context exists.
+  // iOS Safari haptic feedback strategy:
+  // - Real Taptic Engine haptic via direct label.click() on pointerup (activation-triggering)
+  // - Audio click feedback via Web Audio during drag (works without activation)
+  // - Android: navigator.vibrate() during drag
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -287,6 +342,11 @@ export function StickerPeelPreview({
       activePointerRef.current = event.pointerId;
       animatingRef.current = false;
       snappedRef.current = false;
+
+      // Try to unlock AudioContext (may work on pointerdown for some browsers)
+      if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
+      peelAudioRef.current.init();
+      lastTickRef.current = 0;
 
       if (resetTimeoutRef.current) {
         clearTimeout(resetTimeoutRef.current);
@@ -351,8 +411,16 @@ export function StickerPeelPreview({
         });
       }
 
-      // NOTE: No haptics here. pointermove is NOT an activation-triggering
-      // event on iOS Safari — checkbox-switch clicks are silently ignored.
+      // Audio tick + Android vibration during drag
+      const now = performance.now();
+      if (now - lastTickRef.current > 60) {
+        // Volume scales with peel: subtle at start, stronger as sticker peels
+        peelAudioRef.current?.tick(0.06 + peelAmount * 0.14);
+        if (isAndroid) {
+          try { navigator.vibrate?.(6); } catch { /* silent */ }
+        }
+        lastTickRef.current = now;
+      }
     },
     [applyPeelToDOM, dragRange],
   );
@@ -380,11 +448,14 @@ export function StickerPeelPreview({
 
       dragStartRef.current = null;
 
-      // pointerup IS activation-triggering for touch — haptics work here.
-      // With debug=false, trigger() fires the first checkbox click synchronously
-      // (no await ensureAudio), so it stays within user gesture context.
+      // pointerup IS activation-triggering for touch — synchronous label.click()
+      // fires the Taptic Engine via checkbox-switch trick.
       if (currentPeel > SNAP_THRESHOLD) {
-        try { whTriggerRef.current("success"); } catch { /* silent */ }
+        fireHaptic();
+        peelAudioRef.current?.tick(0.25);
+        if (isAndroid) {
+          try { navigator.vibrate?.([15, 30, 20]); } catch { /* silent */ }
+        }
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
@@ -398,7 +469,8 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        try { whTriggerRef.current("light"); } catch { /* silent */ }
+        fireHaptic();
+        peelAudioRef.current?.tick(0.1);
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
@@ -712,7 +784,15 @@ export function StickerPeelPreview({
           type="button"
           className="mt-1 text-[10px] tracking-[0.03em] text-muted/50 hover:text-muted/80 transition-colors"
           style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
-          onClick={() => { try { testTriggerRef.current("buzz"); } catch {} }}
+          onClick={() => {
+            if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
+            peelAudioRef.current.init();
+            fireHaptic();
+            // Rapid audio ticks = buzz effect
+            for (let i = 1; i <= 12; i++) {
+              setTimeout(() => peelAudioRef.current?.tick(0.15), i * 50);
+            }
+          }}
         >
           tap to test haptics
         </button>
