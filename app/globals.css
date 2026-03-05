@@ -258,17 +258,18 @@ main {
 
 /* --- Finish overlays --- */
 
-/* Holographic layer 1: iridescent color tinting
-   color blend applies hue/saturation ONLY — luminosity preserved perfectly,
-   so this can never wash out the sticker regardless of opacity */
+/* Holographic layer 1: iridescent tinting via multiply
+   multiply is the only blend that visibly tints white areas —
+   white × pastel = pastel. Physically correct: holographic vinyl
+   shows through lighter/white areas of the print. */
 .holo-tint {
   background: conic-gradient(
     from 220deg,
-    #a0c4f0, #b0a0ff, #d0a0e0, #f0a0c0, #a0d8b8, #a0c4f0
+    #a8ccf8, #b8a8ff, #d8a8e8, #f8a8c8, #a8e0c0, #a8ccf8
   );
   background-size: 140% 140%;
-  mix-blend-mode: color;
-  opacity: 0.55;
+  mix-blend-mode: multiply;
+  opacity: 0.35;
   animation: holo-shimmer 8s ease-in-out infinite;
 }
 
