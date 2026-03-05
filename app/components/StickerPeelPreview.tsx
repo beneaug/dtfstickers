@@ -159,13 +159,14 @@ export function StickerPeelPreview({
   displayDimsRef.current = { w: displayW, h: displayH };
 
   // DOM refs
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
   const foldHighlightRef = useRef<HTMLDivElement>(null);
 
   // Interaction refs (zero React state during drag = zero re-renders)
+  const pointerCapturedRef = useRef(false);
   const peelRef = useRef(REST_PEEL);
   const angleRef = useRef(DEFAULT_DRAG_ANGLE);
   const activePointerRef = useRef<number | null>(null);
@@ -401,13 +402,14 @@ export function StickerPeelPreview({
   }, [applyPeelToDOM, runSpringAnimation]);
 
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (activePointerRef.current !== null) return;
 
       activePointerRef.current = event.pointerId;
       animatingRef.current = false;
       snappedRef.current = false;
+      pointerCapturedRef.current = false;
 
       // Unlock audio context
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
@@ -424,7 +426,9 @@ export function StickerPeelPreview({
         clientY: event.clientY,
       };
 
-      event.currentTarget.setPointerCapture(event.pointerId);
+      // NOTE: Do NOT setPointerCapture here. On iOS Safari, pointer capture
+      // suppresses the subsequent click event (WebKit bug). We delay capture
+      // to the first significant pointermove so taps get clean click events.
 
       // If activated (from a prior tap), start audio buzz immediately to
       // supplement the haptic buzz that's already running
@@ -444,14 +448,25 @@ export function StickerPeelPreview({
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current
       )
         return;
 
-      event.preventDefault();
+      // Delay pointer capture until drag actually starts. Setting capture
+      // in pointerDown suppresses the click event on iOS Safari (WebKit bug),
+      // which prevents our tap-to-activate haptic from firing.
+      // touch-action: none already prevents scrolling, so we don't need
+      // event.preventDefault() either.
+      if (!pointerCapturedRef.current) {
+        try {
+          (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+          pointerCapturedRef.current = true;
+        } catch { /* pointer may have been released */ }
+      }
+
       velocityTracker.current.push(event.clientX, event.clientY);
 
       const dx = event.clientX - dragStartRef.current.clientX;
@@ -488,12 +503,13 @@ export function StickerPeelPreview({
   );
 
   const handlePointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
 
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      if (pointerCapturedRef.current && event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+      pointerCapturedRef.current = false;
 
       activePointerRef.current = null; // Stops the buzz rAF audio loop
       if (buzzRafRef.current) { cancelAnimationFrame(buzzRafRef.current); buzzRafRef.current = null; }
@@ -510,29 +526,10 @@ export function StickerPeelPreview({
       peelSpring.current.velocity = springVel;
       dragStartRef.current = null;
 
-      // Tap detected (sticker barely moved).
-      // For touch: pointerUp IS activation-triggering (unlike pointerDown).
-      // Fire trigger("buzz") directly here — don't rely on click event which
-      // may be suppressed by setPointerCapture on iOS Safari.
-      // For mouse: skip, let onClick handle it (mouse pointerUp is NOT activation-triggering).
+      // Tap detected (sticker barely moved). Don't fire haptic here —
+      // let the onClick handler do it. onClick has guaranteed user activation
+      // context and now fires reliably since pointer capture wasn't set for taps.
       if (currentPeel <= REST_PEEL + 0.03) {
-        if (event.pointerType !== "mouse" && !snappedRef.current && !activatedRef.current) {
-          triggerRef.current("buzz");
-          activatedRef.current = true;
-          peelRef.current = 0.15;
-          applyPeelToDOM();
-          if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
-          activationTimerRef.current = setTimeout(() => {
-            activatedRef.current = false;
-            activationTimerRef.current = null;
-            if (activePointerRef.current === null && !snappedRef.current) {
-              runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-                angleRef.current = DEFAULT_DRAG_ANGLE;
-                applyPeelToDOM();
-              });
-            }
-          }, ACTIVATION_WINDOW);
-        }
         return;
       }
 
@@ -631,10 +628,22 @@ export function StickerPeelPreview({
         transition: "background-color 0.6s ease",
       }}
     >
-      <div
+      <button
+        type="button"
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center select-none"
-        style={{ touchAction: "none" }}
+        style={{
+          touchAction: "none",
+          appearance: "none",
+          background: "none",
+          border: "none",
+          padding: 0,
+          font: "inherit",
+          color: "inherit",
+          textAlign: "inherit",
+          cursor: "default",
+          outline: "none",
+        }}
         onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -861,7 +870,7 @@ export function StickerPeelPreview({
             />
           </div>
         </div>
-      </div>
+      </button>
 
       <div className="absolute bottom-3 left-0 w-full text-center">
         <p
