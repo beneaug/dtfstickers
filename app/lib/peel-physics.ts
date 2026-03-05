@@ -2,8 +2,8 @@ import { clamp } from "./utils";
 
 // --- Adhesive Resistance Curve ---
 
-const BREAK_POINT = 0.12;
-const STEEPNESS = 8;
+const BREAK_POINT = 0.08;
+const STEEPNESS = 10;
 const END_RESIST = 0.15;
 
 function sigmoid(x: number): number {

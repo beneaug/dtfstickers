@@ -57,7 +57,7 @@ function getStrokeWidth(displaySize: number): number {
 }
 
 function getDragRange(displaySize: number): number {
-  return Math.max(220, displaySize * 1.6);
+  return Math.max(120, displaySize * 0.7);
 }
 
 
@@ -119,7 +119,12 @@ export function StickerPeelPreview({
   const adhesiveBreakRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
 
-  const safeHaptic = useCallback((preset: "light" | "medium" | "success") => {
+  // Progressive haptic ticks — fire at regular peel intervals for texture feel
+  const HAPTIC_STEP = 0.07;
+  const lastHapticStepRef = useRef(0);
+  const lastHapticTimeRef = useRef(0);
+
+  const safeHaptic = useCallback((preset: "selection" | "light" | "medium" | "heavy" | "success") => {
     try { haptic(preset); } catch { /* silent */ }
   }, []);
 
@@ -217,6 +222,7 @@ export function StickerPeelPreview({
         const dt = Math.min((now - lastTime) / 1000, 0.033);
         lastTime = now;
 
+        const prevPeel = peelRef.current;
         const peelResult = stepSpring(
           peelSpring.current,
           targetPeel,
@@ -230,6 +236,14 @@ export function StickerPeelPreview({
         peelRef.current = clamp(peelResult.value, 0, 1);
 
         applyPeelToDOM();
+
+        // Haptic ticks during spring animation — textured snap feel
+        const prevStep = Math.floor(prevPeel / 0.07);
+        const curStep = Math.floor(peelRef.current / 0.07);
+        if (curStep !== prevStep && now - lastHapticTimeRef.current > 55) {
+          lastHapticTimeRef.current = now;
+          try { haptic("selection"); } catch { /* */ }
+        }
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
@@ -261,6 +275,8 @@ export function StickerPeelPreview({
         resetTimeoutRef.current = null;
       }
       adhesiveBreakRef.current = false;
+      lastHapticStepRef.current = Math.floor(peelRef.current / HAPTIC_STEP);
+      lastHapticTimeRef.current = 0;
       velocityTracker.current.reset();
 
       dragStartRef.current = {
@@ -321,10 +337,17 @@ export function StickerPeelPreview({
         });
       }
 
-      // Haptics — only at key moments, not continuous
-      if (!adhesiveBreakRef.current && peelAmount > 0.18) {
+      // Progressive haptic ticks — fire at each peel step boundary for texture
+      const currentStep = Math.floor(peelAmount / HAPTIC_STEP);
+      if (currentStep !== lastHapticStepRef.current) {
+        lastHapticStepRef.current = currentStep;
+        safeHaptic("selection");
+      }
+
+      // Adhesive break haptic — stronger pop when adhesive releases
+      if (!adhesiveBreakRef.current && peelAmount > 0.15) {
         adhesiveBreakRef.current = true;
-        safeHaptic("medium");
+        safeHaptic("heavy");
       }
     },
     [safeHaptic, applyPeelToDOM, dragRange],
