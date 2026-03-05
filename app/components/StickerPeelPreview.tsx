@@ -60,6 +60,11 @@ function getDragRange(displaySize: number): number {
   return Math.max(280, displaySize * 2.0);
 }
 
+// Detect touch device — matches the web-haptics demo site's approach.
+// On touch devices debug is OFF so trigger() fires the first checkbox click
+// synchronously (no `await ensureAudio()` to break user gesture context).
+const isTouchDevice =
+  typeof window !== "undefined" && "ontouchstart" in window;
 
 export function StickerPeelPreview({
   imageUrl,
@@ -70,9 +75,20 @@ export function StickerPeelPreview({
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
-  const { trigger: whTrigger } = useWebHaptics({ debug: true });
+
+  // Main haptic instance — debug OFF on touch so trigger() is fully synchronous.
+  // On desktop, debug ON for audible click feedback during development.
+  const { trigger: whTrigger } = useWebHaptics({
+    debug: !isTouchDevice,
+  });
   const whTriggerRef = useRef(whTrigger);
   whTriggerRef.current = whTrigger;
+
+  // Separate debug-enabled instance for the test button only.
+  // onClick has a long user-activation window so the async ensureAudio() is OK.
+  const { trigger: testTrigger } = useWebHaptics({ debug: true });
+  const testTriggerRef = useRef(testTrigger);
+  testTriggerRef.current = testTrigger;
 
   const displaySize = getStickerDisplaySize(size);
   const strokeW = getStrokeWidth(displaySize);
@@ -95,33 +111,11 @@ export function StickerPeelPreview({
   displayDimsRef.current = { w: displayW, h: displayH };
 
   // DOM refs
-  const containerRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
   const foldHighlightRef = useRef<HTMLDivElement>(null);
-
-  // Persistent hidden checkbox-switch for direct haptic triggering.
-  // Bypasses web-haptics library during drag because its async `ensureAudio()`
-  // breaks user gesture context on iOS Safari. Clicking this element directly
-  // from pointer event handlers is fully synchronous = guaranteed haptic.
-  const hapticCheckboxRef = useRef<HTMLLabelElement | null>(null);
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const label = document.createElement("label");
-    label.style.display = "none";
-    label.ariaHidden = "true";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.setAttribute("switch", "");
-    label.appendChild(input);
-    document.body.appendChild(label);
-    hapticCheckboxRef.current = label;
-    return () => {
-      label.remove();
-      hapticCheckboxRef.current = null;
-    };
-  }, []);
 
   // Interaction refs (zero React state during drag = zero re-renders)
   const peelRef = useRef(REST_PEEL);
@@ -140,16 +134,9 @@ export function StickerPeelPreview({
   const animatingRef = useRef(false);
   const springConfigRef = useRef(SPRING_SNAP_BACK);
 
-  // Haptic + hint refs
+  // Hint refs
   const firstPeelRef = useRef(false);
   const hintRef = useRef<HTMLParagraphElement>(null);
-
-  // Direct haptic tick — clicks the persistent hidden checkbox synchronously.
-  // Called from pointer event handlers which have user gesture context on iOS.
-  // At ~60Hz pointermove rate this produces continuous buzzing.
-  const hapticTick = useCallback(() => {
-    try { hapticCheckboxRef.current?.click(); } catch { /* silent */ }
-  }, []);
 
   // --- Burst position helper ---
   const getBurstPos = useCallback(() => {
@@ -245,7 +232,6 @@ export function StickerPeelPreview({
         const dt = Math.min((now - lastTime) / 1000, 0.033);
         lastTime = now;
 
-        const prevPeel = peelRef.current;
         const peelResult = stepSpring(
           peelSpring.current,
           targetPeel,
@@ -259,9 +245,6 @@ export function StickerPeelPreview({
         peelRef.current = clamp(peelResult.value, 0, 1);
 
         applyPeelToDOM();
-
-        // NOTE: Haptics removed from rAF — iOS Safari has no user gesture
-        // context inside requestAnimationFrame, so haptic calls are silent.
 
         if (peelResult.atRest || !animatingRef.current) {
           animatingRef.current = false;
@@ -278,9 +261,26 @@ export function StickerPeelPreview({
   );
 
   // --- Pointer Handlers ---
+  //
+  // Haptic feedback constraints on iOS Safari (researched Jan 2025 WebKit source):
+  //
+  // WebKit commit dfb3971 requires `processingUserGesture === true` for the
+  // checkbox-switch haptic to fire. The activation-triggering events for touch are:
+  //   - pointerup (touch/pen only)
+  //   - touchend
+  //   - click
+  //
+  // NOT activation-triggering:
+  //   - pointerdown (for touch — only for mouse)
+  //   - pointermove (never)
+  //   - requestAnimationFrame callbacks
+  //   - setTimeout/setInterval callbacks
+  //
+  // This means continuous haptics during a finger drag is impossible on iOS Safari.
+  // We fire haptics on pointerup (snap/release) where gesture context exists.
 
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (activePointerRef.current !== null) return;
 
@@ -301,9 +301,6 @@ export function StickerPeelPreview({
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
-      // Initial haptic tick on touch
-      hapticTick();
-
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
         // Fade out the hint on first touch
@@ -313,11 +310,11 @@ export function StickerPeelPreview({
         }
       }
     },
-    [hapticTick],
+    [],
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current
@@ -354,16 +351,14 @@ export function StickerPeelPreview({
         });
       }
 
-      // Continuous haptic buzz — click checkbox on every pointermove (~60Hz).
-      // Each click is synchronous in the pointer event handler = guaranteed
-      // user gesture context on iOS Safari.
-      hapticTick();
+      // NOTE: No haptics here. pointermove is NOT an activation-triggering
+      // event on iOS Safari — checkbox-switch clicks are silently ignored.
     },
-    [hapticTick, applyPeelToDOM, dragRange],
+    [applyPeelToDOM, dragRange],
   );
 
   const handlePointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
 
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -385,9 +380,11 @@ export function StickerPeelPreview({
 
       dragStartRef.current = null;
 
+      // pointerup IS activation-triggering for touch — haptics work here.
+      // With debug=false, trigger() fires the first checkbox click synchronously
+      // (no await ensureAudio), so it stays within user gesture context.
       if (currentPeel > SNAP_THRESHOLD) {
-        // Success haptic — double tick
-        hapticTick();
+        try { whTriggerRef.current("success"); } catch { /* silent */ }
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
@@ -401,13 +398,14 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
+        try { whTriggerRef.current("light"); } catch { /* silent */ }
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
         });
       }
     },
-    [hapticTick, runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
+    [runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
   );
 
   useEffect(() => {
@@ -472,21 +470,10 @@ export function StickerPeelPreview({
         transition: "background-color 0.6s ease",
       }}
     >
-      <button
-        type="button"
+      <div
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center select-none"
-        style={{
-          touchAction: "none",
-          appearance: "none",
-          background: "none",
-          border: "none",
-          padding: 0,
-          font: "inherit",
-          color: "inherit",
-          textAlign: "inherit" as const,
-          cursor: "default",
-        }}
+        style={{ touchAction: "none" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
@@ -712,7 +699,7 @@ export function StickerPeelPreview({
             />
           </div>
         </div>
-      </button>
+      </div>
 
       <div className="absolute bottom-3 left-0 w-full text-center">
         <p
@@ -725,7 +712,7 @@ export function StickerPeelPreview({
           type="button"
           className="mt-1 text-[10px] tracking-[0.03em] text-muted/50 hover:text-muted/80 transition-colors"
           style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
-          onClick={() => { try { whTriggerRef.current("medium"); } catch {} }}
+          onClick={() => { try { testTriggerRef.current("buzz"); } catch {} }}
         >
           tap to test haptics
         </button>
