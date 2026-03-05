@@ -9,7 +9,6 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useWebHaptics } from "web-haptics/react";
 import { clamp } from "../lib/utils";
 import {
   stepSpring,
@@ -116,6 +115,59 @@ class PeelAudio {
 const isAndroid =
   typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
 
+// --- Direct haptic via checkbox-switch trick (ios-haptics pattern) ---
+// Bypasses web-haptics library entirely. Zero function call overhead between
+// the user gesture event and label.click(). Proven pattern from:
+// https://github.com/tijnjh/ios-haptics
+//
+// The label+checkbox is created once and reused. label.click() toggles the
+// checkbox, which triggers WebKit's internal Taptic Engine call via
+// CheckboxInputType::willDispatchClick → performSwitchHapticFeedback().
+let _hapticLabel: HTMLLabelElement | null = null;
+
+function ensureHapticDOM() {
+  if (_hapticLabel) return;
+  if (typeof document === "undefined") return;
+  _hapticLabel = document.createElement("label");
+  _hapticLabel.ariaHidden = "true";
+  _hapticLabel.style.display = "none";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.setAttribute("switch", "");
+  _hapticLabel.appendChild(input);
+  document.head.appendChild(_hapticLabel);
+}
+
+/** Single haptic tick. Must be called synchronously within a user gesture. */
+function hapticTick() {
+  try {
+    ensureHapticDOM();
+    _hapticLabel?.click();
+  } catch { /* unsupported */ }
+}
+
+/** Start a sustained buzz (repeated ticks via rAF). Returns cancel function.
+ *  First tick fires synchronously (within user gesture). Subsequent ticks
+ *  fire in rAF within WebKit's 1-second transient activation window. */
+function hapticBuzz(durationMs = 1000): () => void {
+  ensureHapticDOM();
+  _hapticLabel?.click(); // First tick — synchronous, within user gesture
+  if (isAndroid) { try { navigator.vibrate?.(durationMs); } catch { /* */ } }
+  const start = performance.now();
+  let lastClick = 0;
+  let rafId: number | null = null;
+  const tick = (now: number) => {
+    if (now - start >= durationMs) { rafId = null; return; }
+    if (now - lastClick >= 16) { // ~60 clicks/sec at max intensity
+      try { _hapticLabel?.click(); } catch { /* */ }
+      lastClick = now;
+    }
+    rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
+  return () => { if (rafId !== null) cancelAnimationFrame(rafId); };
+}
+
 export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
@@ -126,12 +178,8 @@ export function StickerPeelPreview({
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
 
-  // web-haptics: exactly as haptics.lochie.me — no debug, no options.
-  // The library handles checkbox-switch DOM, synchronous first click,
-  // and rAF pattern loop internally.
-  const { trigger } = useWebHaptics();
-  const triggerRef = useRef(trigger);
-  triggerRef.current = trigger;
+  // Ref to cancel a running haptic buzz
+  const buzzCancelRef = useRef<(() => void) | null>(null);
 
   // Audio buzz feedback for drag (matches web-haptics audio engine)
   const peelAudioRef = useRef<PeelAudio | null>(null);
@@ -159,7 +207,7 @@ export function StickerPeelPreview({
   displayDimsRef.current = { w: displayW, h: displayH };
 
   // DOM refs
-  const containerRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
@@ -339,19 +387,22 @@ export function StickerPeelPreview({
   //
   // Haptic strategy:
   //
-  // The key constraint: setPointerCapture() suppresses click events on iOS
-  // Safari. We need pointer capture for smooth drag tracking, but click is
-  // the only reliable activation-triggering event for haptics.
+  // 1. Direct checkbox-switch trick (ios-haptics pattern) — no library.
+  //    hapticTick() / hapticBuzz() call label.click() DIRECTLY, with zero
+  //    intermediate layers. This ensures the click happens in the same
+  //    synchronous call frame as the user gesture event.
   //
-  // Solution: Use NATIVE touchend events for haptic firing. Touch events
-  // are NOT affected by pointer capture (they have their own targeting model).
-  // touchend is guaranteed to have user activation context in WebKit.
+  // 2. Native touchend for haptic firing. Touch events bypass pointer
+  //    capture entirely (separate targeting model). touchend has guaranteed
+  //    user activation context in WebKit (ActivationTriggering).
   //
-  // - touchend: fires haptic (tap activation, snap buzz, release nudge)
-  // - handlePointerEnd: handles visuals, animations, spring physics
-  // - handleClick: mouse-only fallback (desktop)
+  // 3. Container is a <div>, not <button>. Buttons on iOS Safari have
+  //    built-in touch overhead (focus, tap highlight, accessibility rotor)
+  //    that causes lag during pointer event processing.
+  //
+  // 4. PeelAudio provides audio feedback during drag (Web Audio API).
 
-  const ACTIVATION_WINDOW = 2500; // ms — activation lasts for buzz overlap
+  const ACTIVATION_WINDOW = 2500;
 
   const startBuzzAudio = useCallback(() => {
     if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
@@ -374,8 +425,8 @@ export function StickerPeelPreview({
   }, []);
 
   // --- Native touchend: fires haptic with guaranteed user activation ---
-  // Touch events bypass pointer capture entirely. touchend has user gesture
-  // context in WebKit, so trigger("buzz") → hapticLabel.click() works.
+  // Touch events bypass pointer capture entirely.
+  // Uses direct hapticTick()/hapticBuzz() — zero library overhead.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -384,9 +435,12 @@ export function StickerPeelPreview({
       const peel = peelRef.current;
 
       if (peel <= REST_PEEL + 0.03) {
-        // Tap — fire buzz for activation
+        // Tap — fire 1-second buzz for activation
         if (!snappedRef.current && !activatedRef.current) {
-          triggerRef.current("buzz");
+          // Cancel any prior buzz
+          buzzCancelRef.current?.();
+          // Fire buzz DIRECTLY — no library, no wrappers, just label.click()
+          buzzCancelRef.current = hapticBuzz(1000);
           activatedRef.current = true;
           peelRef.current = 0.15;
           applyPeelToDOM();
@@ -404,10 +458,11 @@ export function StickerPeelPreview({
         }
       } else if (peel > SNAP_THRESHOLD && !snappedRef.current) {
         // Snap — celebratory buzz
-        triggerRef.current("buzz");
+        buzzCancelRef.current?.();
+        buzzCancelRef.current = hapticBuzz(1000);
       } else if (peel > REST_PEEL + 0.03 && !snappedRef.current) {
-        // Release below threshold — nudge
-        triggerRef.current("nudge");
+        // Release below threshold — single tick
+        hapticTick();
       }
     };
 
@@ -415,33 +470,8 @@ export function StickerPeelPreview({
     return () => el.removeEventListener("touchend", onTouchEnd);
   }, [applyPeelToDOM, runSpringAnimation]);
 
-  // --- onClick: mouse-only fallback for desktop ---
-  const handleClick = useCallback(() => {
-    // Touch users: handled by native touchend listener above.
-    // activatedRef is already set by touchend, so this early-returns for touch.
-    if (snappedRef.current || activatedRef.current) return;
-    if (peelRef.current > REST_PEEL + 0.05) return;
-
-    triggerRef.current("buzz");
-    activatedRef.current = true;
-    peelRef.current = 0.15;
-    applyPeelToDOM();
-
-    if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
-    activationTimerRef.current = setTimeout(() => {
-      activatedRef.current = false;
-      activationTimerRef.current = null;
-      if (activePointerRef.current === null && !snappedRef.current) {
-        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-          angleRef.current = DEFAULT_DRAG_ANGLE;
-          applyPeelToDOM();
-        });
-      }
-    }, ACTIVATION_WINDOW);
-  }, [applyPeelToDOM, runSpringAnimation]);
-
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (activePointerRef.current !== null) return;
 
@@ -464,13 +494,9 @@ export function StickerPeelPreview({
         clientY: event.clientY,
       };
 
-      // Pointer capture for reliable drag tracking.
-      // This suppresses click on iOS Safari, but we use native touchend
-      // for haptics instead of click, so that's fine.
       event.currentTarget.setPointerCapture(event.pointerId);
 
-      // If activated (from a prior tap), start audio buzz immediately to
-      // supplement the haptic buzz that's already running
+      // If activated (from a prior tap), start audio buzz for drag feedback
       if (activatedRef.current) {
         startBuzzAudio();
       }
@@ -487,7 +513,7 @@ export function StickerPeelPreview({
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current
@@ -531,14 +557,14 @@ export function StickerPeelPreview({
   );
 
   const handlePointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
 
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
-      activePointerRef.current = null; // Stops the buzz rAF audio loop
+      activePointerRef.current = null; // Stops buzz audio rAF loop
       if (buzzRafRef.current) { cancelAnimationFrame(buzzRafRef.current); buzzRafRef.current = null; }
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
@@ -554,14 +580,11 @@ export function StickerPeelPreview({
       dragStartRef.current = null;
 
       // Tap — touchend already fired haptic and set activatedRef.
-      // Just return so the activation visual (corner lift) persists.
       if (currentPeel <= REST_PEEL + 0.03) {
         return;
       }
 
-      // --- Drag release ---
-      // Haptics fired by native touchend handler above.
-      // This handler only does visuals and animations.
+      // --- Drag release (visuals + animations only, haptic from touchend) ---
       if (currentPeel > SNAP_THRESHOLD) {
         peelAudioRef.current?.tick(1.0);
         snappedRef.current = true;
@@ -597,6 +620,7 @@ export function StickerPeelPreview({
       if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
       if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
       if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+      buzzCancelRef.current?.();
     };
   }, []);
 
@@ -653,23 +677,13 @@ export function StickerPeelPreview({
         transition: "background-color 0.6s ease",
       }}
     >
-      <button
-        type="button"
+      <div
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center select-none"
         style={{
           touchAction: "none",
-          appearance: "none",
-          background: "none",
-          border: "none",
-          padding: 0,
-          font: "inherit",
-          color: "inherit",
-          textAlign: "inherit",
-          cursor: "default",
-          outline: "none",
+          WebkitTapHighlightColor: "transparent",
         }}
-        onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
@@ -895,7 +909,7 @@ export function StickerPeelPreview({
             />
           </div>
         </div>
-      </button>
+      </div>
 
       <div className="absolute bottom-3 left-0 w-full text-center">
         <p
@@ -908,7 +922,7 @@ export function StickerPeelPreview({
           type="button"
           className="mt-1 text-[10px] tracking-[0.03em] text-muted/50 hover:text-muted/80 transition-colors"
           style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
-          onClick={() => triggerRef.current("buzz")}
+          onClick={() => hapticBuzz(1000)}
         >
           tap to test haptics
         </button>
