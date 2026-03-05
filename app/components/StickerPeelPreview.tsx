@@ -177,6 +177,17 @@ export function StickerPeelPreview({
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafPendingRef = useRef(false);
 
+  // Tap-to-activate haptic state:
+  // Touch pointerDown is NOT activation-triggering, but pointerUp/click IS.
+  // On the first tap (quick touch+release), we fire trigger("buzz") which
+  // gives 1 second of Taptic Engine buzz. The sticker enters an "activated"
+  // state. If the user touches again within the activation window, the peel
+  // drag happens WITH the buzz still running — creating the illusion of
+  // haptic feedback during drag.
+  const activatedRef = useRef(false);
+  const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tapStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
   const animatingRef = useRef(false);
@@ -327,10 +338,47 @@ export function StickerPeelPreview({
 
   // --- Pointer Handlers ---
   //
-  // iOS Safari haptic feedback strategy:
-  // - Real Taptic Engine haptic via direct label.click() on pointerup (activation-triggering)
-  // - Audio click feedback via Web Audio during drag (works without activation)
-  // - Android: navigator.vibrate() during drag
+  // Tap-to-activate haptic strategy:
+  //
+  // iOS Safari only grants user activation on pointerUp/touchEnd (not pointerDown
+  // or pointerMove). So we use a two-phase interaction:
+  //
+  // Phase 1 — ACTIVATE: User taps sticker (quick touch + release).
+  //   On pointerUp with minimal movement, we fire trigger("buzz") for a 1-second
+  //   Taptic Engine buzz + visual "activated" cue. The sticker lifts slightly.
+  //
+  // Phase 2 — PEEL: User touches again within ~2s and drags.
+  //   The buzz from Phase 1 is still running via web-haptics' rAF loop.
+  //   The peel drag plays out WITH haptic feedback already active.
+  //   Audio buzz from PeelAudio supplements after the 1s haptic expires.
+  //
+  // If the user drags immediately (no tap first), they get audio buzz only.
+  // On mouse devices, this two-phase isn't needed since mousedown is activation-
+  // triggering, but the flow still works naturally.
+
+  const TAP_MOVE_THRESHOLD = 12; // px — max movement to count as a tap
+  const TAP_TIME_THRESHOLD = 300; // ms — max duration to count as a tap
+  const ACTIVATION_WINDOW = 2000; // ms — how long activation lasts
+
+  const startBuzzAudio = useCallback(() => {
+    if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
+    peelAudioRef.current.init();
+    buzzLastTickRef.current = 0;
+    if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
+    const audio = peelAudioRef.current;
+    const buzzLoop = (ts: number) => {
+      if (activePointerRef.current === null) { buzzRafRef.current = null; return; }
+      const peel = peelRef.current;
+      const interval = 16 + (1 - peel) * 84;
+      if (ts - buzzLastTickRef.current >= interval && peel > REST_PEEL + 0.02) {
+        audio.tick(peel);
+        if (isAndroid) { try { navigator.vibrate?.(6); } catch { /* */ } }
+        buzzLastTickRef.current = ts;
+      }
+      buzzRafRef.current = requestAnimationFrame(buzzLoop);
+    };
+    buzzRafRef.current = requestAnimationFrame(buzzLoop);
+  }, []);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -341,27 +389,16 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       snappedRef.current = false;
 
-      // Unlock audio + start buzz rAF loop
+      // Record tap start for tap detection
+      tapStartRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        time: performance.now(),
+      };
+
+      // Unlock audio context
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
       peelAudioRef.current.init();
-      buzzLastTickRef.current = 0;
-      // Continuous buzz loop: ticks at variable rate based on peel amount.
-      // At rest (0.08): ~10/sec. At full peel (1.0): ~62/sec (matches web-haptics buzz).
-      if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
-      const audio = peelAudioRef.current;
-      const buzzLoop = (ts: number) => {
-        if (activePointerRef.current === null) { buzzRafRef.current = null; return; }
-        const peel = peelRef.current;
-        // Interval: 16ms at full peel → 100ms at rest (web-haptics formula: 16 + (1-intensity)*84)
-        const interval = 16 + (1 - peel) * 84;
-        if (ts - buzzLastTickRef.current >= interval && peel > REST_PEEL + 0.02) {
-          audio.tick(peel);
-          if (isAndroid) { try { navigator.vibrate?.(6); } catch { /* */ } }
-          buzzLastTickRef.current = ts;
-        }
-        buzzRafRef.current = requestAnimationFrame(buzzLoop);
-      };
-      buzzRafRef.current = requestAnimationFrame(buzzLoop);
 
       if (resetTimeoutRef.current) {
         clearTimeout(resetTimeoutRef.current);
@@ -376,16 +413,21 @@ export function StickerPeelPreview({
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
+      // If already activated (from a prior tap), start audio buzz immediately
+      // since the haptic buzz from the tap is already running
+      if (activatedRef.current) {
+        startBuzzAudio();
+      }
+
       if (!firstPeelRef.current) {
         firstPeelRef.current = true;
-        // Fade out the hint on first touch
         if (hintRef.current) {
           hintRef.current.classList.remove("peel-hint");
           hintRef.current.classList.add("peel-hint-hidden");
         }
       }
     },
-    [],
+    [startBuzzAudio],
   );
 
   const handlePointerMove = useCallback(
@@ -403,9 +445,15 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
+      // Once the user moves past the tap threshold, this is a drag — start audio
+      // buzz if not already running (for drags without prior tap activation)
+      if (dist > TAP_MOVE_THRESHOLD && buzzRafRef.current === null) {
+        tapStartRef.current = null; // No longer a tap
+        startBuzzAudio();
+      }
+
       // Smooth angle blending — fluid direction changes, no jitter
       const rawAngle = continuousDragAngle(dx, dy, angleRef.current);
-      // Blend very gently — large dead zone + slow ramp prevents squirrely mobile input
       const blend = clamp((dist - 40) / 250, 0, 0.06);
       angleRef.current = lerpAngle(angleRef.current, rawAngle, blend);
 
@@ -417,7 +465,6 @@ export function StickerPeelPreview({
       );
       peelRef.current = peelAmount;
 
-      // RAF-throttled DOM update — never apply faster than display refresh
       if (!rafPendingRef.current) {
         rafPendingRef.current = true;
         requestAnimationFrame(() => {
@@ -425,10 +472,8 @@ export function StickerPeelPreview({
           applyPeelToDOM();
         });
       }
-
-      // Audio buzz handled by rAF loop started in pointerDown
     },
-    [applyPeelToDOM, dragRange],
+    [applyPeelToDOM, dragRange, startBuzzAudio],
   );
 
   const handlePointerEnd = useCallback(
@@ -439,7 +484,7 @@ export function StickerPeelPreview({
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
-      activePointerRef.current = null; // Stops the buzz rAF loop
+      activePointerRef.current = null; // Stops the buzz rAF audio loop
       if (buzzRafRef.current) { cancelAnimationFrame(buzzRafRef.current); buzzRafRef.current = null; }
       const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
@@ -453,15 +498,53 @@ export function StickerPeelPreview({
       }
       peelSpring.current.velocity = springVel;
 
+      // --- Tap detection: quick touch+release with minimal movement ---
+      const wasTap = tapStartRef.current !== null &&
+        performance.now() - tapStartRef.current.time < TAP_TIME_THRESHOLD &&
+        Math.abs(event.clientX - tapStartRef.current.x) < TAP_MOVE_THRESHOLD &&
+        Math.abs(event.clientY - tapStartRef.current.y) < TAP_MOVE_THRESHOLD;
+      tapStartRef.current = null;
+
       dragStartRef.current = null;
 
-      // pointerup IS activation-triggering for touch — web-haptics fires
-      // synchronous first checkbox click within user gesture context.
-      if (currentPeel > SNAP_THRESHOLD) {
-        // Full 1-second buzz on snap — pointerUp is activation-triggering for touch
+      // If this was a tap (not a drag), activate haptic buzz + visual cue
+      if (wasTap && !activatedRef.current && currentPeel <= REST_PEEL + 0.05) {
+        // pointerUp IS activation-triggering — fire 1-second haptic buzz
         triggerRef.current("buzz");
+        activatedRef.current = true;
+
+        // Visual activation cue: slight lift animation
+        peelRef.current = 0.15;
+        applyPeelToDOM();
+
+        // Clear any previous activation timer
+        if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+
+        // Activation window: buzz runs for 1s, give 2s for user to start drag
+        activationTimerRef.current = setTimeout(() => {
+          activatedRef.current = false;
+          activationTimerRef.current = null;
+          // If not currently dragging, settle back to rest
+          if (activePointerRef.current === null && !snappedRef.current) {
+            runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+              angleRef.current = DEFAULT_DRAG_ANGLE;
+              applyPeelToDOM();
+            });
+          }
+        }, ACTIVATION_WINDOW);
+
+        return; // Don't process as a normal release
+      }
+
+      // --- Normal drag release ---
+
+      // pointerUp IS activation-triggering for touch.
+      if (currentPeel > SNAP_THRESHOLD) {
+        triggerRef.current("buzz"); // 1-second buzz on snap
         peelAudioRef.current?.tick(1.0);
         snappedRef.current = true;
+        activatedRef.current = false;
+        if (activationTimerRef.current) { clearTimeout(activationTimerRef.current); activationTimerRef.current = null; }
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
         runSpringAnimation(SNAP_FORWARD_TARGET, SPRING_SNAP_FORWARD, () => {
@@ -474,8 +557,10 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        triggerRef.current("nudge"); // 80ms+50ms — more noticeable than "light"
+        triggerRef.current("nudge");
         peelAudioRef.current?.tick(0.4);
+        activatedRef.current = false;
+        if (activationTimerRef.current) { clearTimeout(activationTimerRef.current); activationTimerRef.current = null; }
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
@@ -490,6 +575,7 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
       if (buzzRafRef.current) cancelAnimationFrame(buzzRafRef.current);
+      if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
     };
   }, []);
 
@@ -782,7 +868,7 @@ export function StickerPeelPreview({
           ref={hintRef}
           className="peel-hint text-[11px] tracking-[0.04em] text-muted"
         >
-          Go on, peel it
+          Tap, then peel
         </p>
         <button
           type="button"
