@@ -624,6 +624,7 @@ export function StickerPeelPreview({
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
+            {/* Back face is just backing paper — no finish overlays */}
             {!isSquareCut && (
               <img
                 src={imageUrl}
@@ -634,13 +635,6 @@ export function StickerPeelPreview({
                 }}
                 draggable={false}
               />
-            )}
-            {finish === "gloss" && <div style={glossStyle} />}
-            {finish === "holographic" && (
-              <>
-                <div className="holo-tint" style={finishOverlayBase} />
-                <div className="holo-shine" style={finishOverlayBase} />
-              </>
             )}
           </div>
         </div>
