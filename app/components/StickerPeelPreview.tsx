@@ -509,7 +509,7 @@ export function StickerPeelPreview({
                   in="SourceAlpha"
                   result="shape"
                 />
-                <feFlood floodColor="#e4e6ea" result="flood" />
+                <feFlood floodColor="#e8e5de" result="flood" />
                 <feComposite operator="in" in="flood" in2="shape" />
               </filter>
             </defs>
@@ -620,12 +620,18 @@ export function StickerPeelPreview({
               transform: initFold.flapTransform,
               transformOrigin: "0 0",
               willChange: "clip-path, transform",
-              background: isSquareCut ? "#e4e6ea" : undefined,
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
-            {/* Back face — backing shape */}
-            {!isSquareCut && (
+            {/* Solid opaque backing — prevents any bleed-through */}
+            {isSquareCut ? (
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                background: "#e8e5de",
+                borderRadius: 4,
+              }} />
+            ) : (
               <img
                 src={imageUrl}
                 alt=""
@@ -636,7 +642,7 @@ export function StickerPeelPreview({
                 draggable={false}
               />
             )}
-            {/* Adhesive sheen — glossy sticky surface */}
+            {/* Adhesive surface — warm tacky appearance with wet gloss */}
             <div
               style={{
                 position: "absolute",
@@ -644,8 +650,14 @@ export function StickerPeelPreview({
                 pointerEvents: "none",
                 borderRadius: isSquareCut ? 4 : undefined,
                 background: [
-                  "linear-gradient(145deg, transparent 20%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0.28) 46%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.28) 54%, rgba(255,255,255,0.12) 62%, transparent 80%)",
-                  "radial-gradient(ellipse at 55% 40%, rgba(255,255,255,0.18) 0%, transparent 55%)",
+                  // Broad warm tint — sticky adhesive base tone
+                  "linear-gradient(180deg, rgba(245,235,210,0.35) 0%, rgba(235,225,200,0.25) 100%)",
+                  // Primary specular highlight — wet surface reflection
+                  "linear-gradient(148deg, transparent 22%, rgba(255,255,255,0.06) 34%, rgba(255,255,255,0.22) 43%, rgba(255,255,255,0.38) 48%, rgba(255,255,255,0.42) 50%, rgba(255,255,255,0.38) 52%, rgba(255,255,255,0.22) 57%, rgba(255,255,255,0.06) 66%, transparent 78%)",
+                  // Secondary softer reflection — adds depth
+                  "linear-gradient(225deg, transparent 40%, rgba(255,255,255,0.08) 52%, rgba(255,255,255,0.14) 58%, rgba(255,255,255,0.08) 64%, transparent 76%)",
+                  // Soft radial glow — mimics overhead light on glossy surface
+                  "radial-gradient(ellipse at 48% 38%, rgba(255,252,240,0.22) 0%, rgba(255,250,230,0.08) 40%, transparent 65%)",
                 ].join(", "),
                 ...(isSquareCut ? {} : {
                   WebkitMaskImage: `url(${imageUrl})`,
