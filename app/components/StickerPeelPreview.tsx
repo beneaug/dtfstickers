@@ -341,10 +341,6 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       snappedRef.current = false;
 
-      // Attempt haptic buzz (works for mouse pointerDown; on touch, depends on
-      // transient activation from a prior gesture within 5s)
-      triggerRef.current("buzz");
-
       // Unlock audio + start buzz rAF loop
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
       peelAudioRef.current.init();
@@ -462,7 +458,8 @@ export function StickerPeelPreview({
       // pointerup IS activation-triggering for touch — web-haptics fires
       // synchronous first checkbox click within user gesture context.
       if (currentPeel > SNAP_THRESHOLD) {
-        triggerRef.current("success");
+        // Full 1-second buzz on snap — pointerUp is activation-triggering for touch
+        triggerRef.current("buzz");
         peelAudioRef.current?.tick(1.0);
         snappedRef.current = true;
         const pos = getBurstPos();
@@ -477,7 +474,7 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        triggerRef.current("light");
+        triggerRef.current("nudge"); // 80ms+50ms — more noticeable than "light"
         peelAudioRef.current?.tick(0.4);
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
