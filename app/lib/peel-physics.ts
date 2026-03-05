@@ -154,7 +154,7 @@ export function cornerToPeelDirection(corner: PeelCorner): PeelDirection {
 // --- Continuous Drag Angle ---
 
 const ANGLE_DEADZONE = 5; // px before reporting an angle
-export const DEFAULT_DRAG_ANGLE = Math.PI / 2; // downward
+export const DEFAULT_DRAG_ANGLE = (3 * Math.PI) / 4; // diagonal — peels from top-right corner
 
 /**
  * Compute drag angle from displacement with a deadzone.

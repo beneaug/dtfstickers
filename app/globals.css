@@ -266,18 +266,18 @@ main {
   background:
     repeating-linear-gradient(
       133deg,
-      #ff6ec7 0%, #ff8a4c 8%, #ffd700 16%,
-      #7cff6b 24%, #00e5ff 32%, #7c6bff 40%, #ff6ec7 48%
+      #d4a0b0 0%, #c8a080 8%, #c0b060 16%,
+      #80c090 24%, #70b0c0 32%, #9080c0 40%, #d4a0b0 48%
     ),
     conic-gradient(
       from 220deg at 50% 50%,
-      #ff6ec7, #7c6bff, #00e5ff, #7cff6b, #ffd700, #ff8a4c, #ff6ec7
+      #d4a0b0, #9080c0, #70b0c0, #80c090, #c0b060, #c8a080, #d4a0b0
     );
   background-size: 300% 300%, 150% 150%;
   background-blend-mode: overlay;
   mix-blend-mode: hard-light;
-  filter: brightness(0.8) contrast(1.4) saturate(1.2);
-  opacity: 0.45;
+  filter: brightness(0.9) contrast(1.2) saturate(0.9);
+  opacity: 0.3;
   animation: holo-shimmer 6s ease-in-out infinite;
 }
 
