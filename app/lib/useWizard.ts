@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CheckoutFormData } from "../components/CheckoutModal";
-import { StickerFinish, StickerSize, calculatePricing } from "./pricing";
+import { StickerCut, StickerFinish, StickerSize, calculatePricing } from "./pricing";
 import { haptic, type HapticPreset } from "./haptics";
 import { burst } from "./emoji-burst";
 import { formatCurrency } from "./utils";
@@ -27,6 +27,7 @@ export function useWizard() {
   const [size, setSize] = useState<StickerSize>("3x3");
   const [quantity, setQuantity] = useState(100);
   const [finish, setFinish] = useState<StickerFinish>("matte");
+  const [cut, setCut] = useState<StickerCut>("die-cut");
   const [lastCheckout, setLastCheckout] = useState<CheckoutFormData | null>(null);
   const [bgColor, setBgColor] = useState<string | undefined>(undefined);
 
@@ -83,11 +84,11 @@ export function useWizard() {
   );
 
   const pricing = useMemo(
-    () => calculatePricing({ size, quantity, finish }),
-    [size, quantity, finish],
+    () => calculatePricing({ size, quantity, finish, cut }),
+    [size, quantity, finish, cut],
   );
 
-  const itemSummary = `${quantity} × ${size} ${finish} stickers`;
+  const itemSummary = `${quantity} × ${size} ${finish} ${cut} stickers`;
 
   const handleAddToCart = useCallback(() => {
     safeHaptic("success");
@@ -107,7 +108,7 @@ export function useWizard() {
   return {
     step, direction, goTo, goNext, goBack,
     imageUrl, fileName, size, setSize, quantity, setQuantity,
-    finish, setFinish, bgColor, pricing, itemSummary, lastCheckout,
+    finish, setFinish, cut, setCut, bgColor, pricing, itemSummary, lastCheckout,
     handleFileSelected, handleAddToCart, handleCheckoutComplete, safeHaptic,
     totalFormatted: formatCurrency(pricing.total),
   };

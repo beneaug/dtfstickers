@@ -3,9 +3,11 @@
 import { useCallback } from "react";
 import { haptic } from "../lib/haptics";
 import {
+  CUT_OPTIONS,
   FINISH_OPTIONS,
   QUANTITY_OPTIONS,
   SIZE_OPTIONS,
+  StickerCut,
   StickerFinish,
   StickerSize,
   PricingBreakdown,
@@ -16,19 +18,23 @@ interface OptionsPanelProps {
   size: StickerSize;
   quantity: number;
   finish: StickerFinish;
+  cut: StickerCut;
   pricing: PricingBreakdown;
   onSizeChange: (size: StickerSize) => void;
   onQuantityChange: (quantity: number) => void;
   onFinishChange: (finish: StickerFinish) => void;
+  onCutChange: (cut: StickerCut) => void;
   onAddToCart: () => void;
 }
 
 function Chip<T extends string | number>({
   value,
+  label,
   active,
   onSelect,
 }: {
   value: T;
+  label?: string;
   active: T;
   onSelect: (value: T) => void;
 }) {
@@ -43,7 +49,7 @@ function Chip<T extends string | number>({
           : "bg-[var(--bg-soft)] text-[var(--text)] hover:opacity-70",
       ].join(" ")}
     >
-      {value}
+      {label ?? value}
     </button>
   );
 }
@@ -52,10 +58,12 @@ export function OptionsPanel({
   size,
   quantity,
   finish,
+  cut,
   pricing,
   onSizeChange,
   onQuantityChange,
   onFinishChange,
+  onCutChange,
   onAddToCart,
 }: OptionsPanelProps) {
   const hapticSelect = useCallback(
@@ -114,6 +122,21 @@ export function OptionsPanel({
                 value={option.value}
                 active={finish}
                 onSelect={hapticSelect(onFinishChange)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Cut</p>
+          <div className="flex flex-wrap gap-2">
+            {CUT_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                value={option.value}
+                label={option.label}
+                active={cut}
+                onSelect={hapticSelect(onCutChange)}
               />
             ))}
           </div>

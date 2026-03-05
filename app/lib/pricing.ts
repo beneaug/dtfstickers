@@ -13,8 +13,15 @@ export const FINISH_OPTIONS = [
   { value: "holographic", label: "Holographic" },
 ] as const;
 
+export const CUT_OPTIONS = [
+  { value: "die-cut", label: "Die Cut" },
+  { value: "kiss-cut", label: "Kiss Cut" },
+  { value: "square", label: "Square" },
+] as const;
+
 type SizeKey = (typeof SIZE_OPTIONS)[number]["value"];
 type FinishKey = (typeof FINISH_OPTIONS)[number]["value"];
+type CutKey = (typeof CUT_OPTIONS)[number]["value"];
 
 const BASE_UNIT_BY_SIZE: Record<SizeKey, number> = {
   "2x2": 1.05,
@@ -29,6 +36,12 @@ const FINISH_MULTIPLIER: Record<FinishKey, number> = {
   holographic: 1.22,
 };
 
+const CUT_MULTIPLIER: Record<CutKey, number> = {
+  "die-cut": 1,
+  "kiss-cut": 0.95,
+  "square": 0.9,
+};
+
 const QUANTITY_DISCOUNTS = [
   { minQty: 500, percentOff: 0.36 },
   { minQty: 300, percentOff: 0.3 },
@@ -40,11 +53,13 @@ const QUANTITY_DISCOUNTS = [
 
 export type StickerSize = SizeKey;
 export type StickerFinish = FinishKey;
+export type StickerCut = CutKey;
 
 export interface StickerSelection {
   size: StickerSize;
   quantity: number;
   finish: StickerFinish;
+  cut: StickerCut;
 }
 
 export interface PricingBreakdown {
@@ -60,10 +75,11 @@ const roundToCents = (value: number) => Math.round(value * 100) / 100;
 export function calculatePricing(selection: StickerSelection): PricingBreakdown {
   const baseUnit = BASE_UNIT_BY_SIZE[selection.size];
   const finishMultiplier = FINISH_MULTIPLIER[selection.finish];
+  const cutMultiplier = CUT_MULTIPLIER[selection.cut];
   const tier = QUANTITY_DISCOUNTS.find((entry) => selection.quantity >= entry.minQty);
   const discountPercent = tier?.percentOff ?? 0;
 
-  const unitPrice = roundToCents(baseUnit * finishMultiplier * (1 - discountPercent));
+  const unitPrice = roundToCents(baseUnit * finishMultiplier * cutMultiplier * (1 - discountPercent));
   const subtotal = roundToCents(unitPrice * selection.quantity);
   const shipping = subtotal >= 65 ? 0 : 5.95;
   const total = roundToCents(subtotal + shipping);

@@ -26,12 +26,13 @@ import {
   computeFold,
 } from "../lib/peel-physics";
 import { burst } from "../lib/emoji-burst";
-import type { StickerSize, StickerFinish } from "../lib/pricing";
+import type { StickerSize, StickerFinish, StickerCut } from "../lib/pricing";
 
 interface StickerPeelPreviewProps {
   imageUrl: string;
   size?: StickerSize;
   finish?: StickerFinish;
+  cut?: StickerCut;
   bgColor?: string;
   onSnap?: () => void;
 }
@@ -64,6 +65,7 @@ export function StickerPeelPreview({
   imageUrl,
   size = "3x3",
   finish,
+  cut = "die-cut",
   bgColor,
   onSnap,
 }: StickerPeelPreviewProps) {
@@ -375,33 +377,40 @@ export function StickerPeelPreview({
   // Pre-compute initial fold for first paint
   const initFold = computeFold(DEFAULT_DRAG_ANGLE, REST_PEEL, displayW, displayH);
 
+  const isSquareCut = cut === "square";
+  const isKissCut = cut === "kiss-cut";
+
+  // Square cut: image inset to show white border; others: full size
+  const squareInset = isSquareCut ? strokeW : 0;
+
   const imgStyle: React.CSSProperties = {
-    width: displayW,
-    height: displayH,
+    width: displayW - squareInset * 2,
+    height: displayH - squareInset * 2,
+    margin: squareInset || undefined,
     display: "block",
   };
 
-  // Shared mask style — clips finish overlays to sticker alpha shape
-  const finishOverlayBase: React.CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    pointerEvents: "none",
-    WebkitMaskImage: `url(${imageUrl})`,
-    WebkitMaskSize: "100% 100%",
-    WebkitMaskRepeat: "no-repeat",
-    maskImage: `url(${imageUrl})`,
-    maskSize: "100% 100%",
-    maskRepeat: "no-repeat",
-  };
+  // For die-cut and kiss-cut: mask overlays to sticker alpha contour
+  // For square: overlays cover the full rectangle
+  const finishOverlayBase: React.CSSProperties = isSquareCut
+    ? { position: "absolute", inset: 0, pointerEvents: "none" }
+    : {
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        WebkitMaskImage: `url(${imageUrl})`,
+        WebkitMaskSize: "100% 100%",
+        WebkitMaskRepeat: "no-repeat",
+        maskImage: `url(${imageUrl})`,
+        maskSize: "100% 100%",
+        maskRepeat: "no-repeat",
+      };
 
   const glossStyle: React.CSSProperties = {
     ...finishOverlayBase,
     background: [
-      // Sharp specular highlight — the "window reflection" stripe
       "linear-gradient(125deg, transparent 18%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0.20) 42%, rgba(255,255,255,0.42) 48.5%, rgba(255,255,255,0.48) 50.5%, rgba(255,255,255,0.42) 52.5%, rgba(255,255,255,0.20) 58%, rgba(255,255,255,0.03) 68%, transparent 82%)",
-      // Secondary softer reflection from opposite edge
       "linear-gradient(235deg, transparent 45%, rgba(255,255,255,0.06) 58%, rgba(255,255,255,0.14) 66%, rgba(255,255,255,0.06) 74%, transparent 88%)",
-      // Radial environment light — upper-left hotspot
       "radial-gradient(ellipse at 36% 28%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 45%, transparent 70%)",
     ].join(", "),
   };
@@ -497,6 +506,8 @@ export function StickerPeelPreview({
             style={{
               clipPath: initFold.mainClip,
               willChange: "clip-path",
+              background: isSquareCut || isKissCut ? "white" : undefined,
+              borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
             <img
@@ -504,7 +515,8 @@ export function StickerPeelPreview({
               alt="Sticker preview"
               style={{
                 ...imgStyle,
-                filter: `url(#stroke-${uid})`,
+                filter: isSquareCut ? undefined : `url(#stroke-${uid})`,
+                borderRadius: isSquareCut ? 4 : undefined,
               }}
               draggable={false}
               onContextMenu={(ev) => ev.preventDefault()}
@@ -563,6 +575,8 @@ export function StickerPeelPreview({
               transform: initFold.flapTransform,
               transformOrigin: "0 0",
               willChange: "clip-path, transform",
+              background: isSquareCut || isKissCut ? "#e8e4dd" : undefined,
+              borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
             <img
@@ -570,7 +584,8 @@ export function StickerPeelPreview({
               alt=""
               style={{
                 ...imgStyle,
-                filter: `url(#ef-${uid})`,
+                filter: isSquareCut ? undefined : `url(#ef-${uid})`,
+                borderRadius: isSquareCut ? 4 : undefined,
               }}
               draggable={false}
             />

@@ -24,12 +24,14 @@ export default function HomePage() {
             size={w.size}
             quantity={w.quantity}
             finish={w.finish}
+            cut={w.cut}
             pricing={w.pricing}
             bgColor={w.bgColor}
             onSnap={() => w.safeHaptic("success")}
             onSizeChange={w.setSize}
             onQuantityChange={w.setQuantity}
             onFinishChange={w.setFinish}
+            onCutChange={w.setCut}
             onAddToCart={w.handleAddToCart}
             onFileSelected={w.handleFileSelected}
           />
