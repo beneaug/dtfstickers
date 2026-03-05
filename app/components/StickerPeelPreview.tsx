@@ -9,6 +9,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { clamp } from "../lib/utils";
 import {
   stepSpring,
@@ -112,30 +113,6 @@ class PeelAudio {
   }
 }
 
-// --- Direct iOS haptic via checkbox-switch ---
-// Synchronous label.click() toggles a hidden <input type="checkbox" switch>,
-// triggering the Taptic Engine on iOS Safari 18+.
-// MUST be called from an activation-triggering event (pointerup, click, touchend).
-let _hapticLabel: HTMLLabelElement | null = null;
-
-function fireHaptic() {
-  if (typeof document === "undefined") return;
-  if (!_hapticLabel) {
-    const label = document.createElement("label");
-    label.style.cssText =
-      "position:fixed;left:-9999px;top:0;overflow:hidden;pointer-events:none;";
-    label.ariaHidden = "true";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.setAttribute("switch", "");
-    input.style.cssText = "display:block;width:1px;height:1px;opacity:0.01;";
-    label.appendChild(input);
-    document.body.appendChild(label);
-    _hapticLabel = label;
-  }
-  _hapticLabel.click();
-}
-
 const isAndroid =
   typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
 
@@ -148,6 +125,13 @@ export function StickerPeelPreview({
   onSnap,
 }: StickerPeelPreviewProps) {
   const uid = useId().replace(/:/g, "");
+
+  // web-haptics: exactly as haptics.lochie.me — no debug, no options.
+  // The library handles checkbox-switch DOM, synchronous first click,
+  // and rAF pattern loop internally.
+  const { trigger } = useWebHaptics();
+  const triggerRef = useRef(trigger);
+  triggerRef.current = trigger;
 
   // Audio buzz feedback for drag (matches web-haptics audio engine)
   const peelAudioRef = useRef<PeelAudio | null>(null);
@@ -357,6 +341,10 @@ export function StickerPeelPreview({
       animatingRef.current = false;
       snappedRef.current = false;
 
+      // Attempt haptic buzz (works for mouse pointerDown; on touch, depends on
+      // transient activation from a prior gesture within 5s)
+      triggerRef.current("buzz");
+
       // Unlock audio + start buzz rAF loop
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
       peelAudioRef.current.init();
@@ -471,14 +459,11 @@ export function StickerPeelPreview({
 
       dragStartRef.current = null;
 
-      // pointerup IS activation-triggering for touch — synchronous label.click()
-      // fires the Taptic Engine via checkbox-switch trick.
+      // pointerup IS activation-triggering for touch — web-haptics fires
+      // synchronous first checkbox click within user gesture context.
       if (currentPeel > SNAP_THRESHOLD) {
-        fireHaptic();
-        peelAudioRef.current?.tick(1.0); // Loud snap click
-        if (isAndroid) {
-          try { navigator.vibrate?.([15, 30, 20]); } catch { /* silent */ }
-        }
+        triggerRef.current("success");
+        peelAudioRef.current?.tick(1.0);
         snappedRef.current = true;
         const pos = getBurstPos();
         burst(pos.x, pos.y, ["🎉", "⭐️", "🥳", "✨", "🎊"], 8);
@@ -492,8 +477,8 @@ export function StickerPeelPreview({
         });
         setTimeout(() => onSnap?.(), 120);
       } else {
-        fireHaptic();
-        peelAudioRef.current?.tick(0.4); // Soft release click
+        triggerRef.current("light");
+        peelAudioRef.current?.tick(0.4);
         runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
           angleRef.current = DEFAULT_DRAG_ANGLE;
           applyPeelToDOM();
@@ -806,22 +791,7 @@ export function StickerPeelPreview({
           type="button"
           className="mt-1 text-[10px] tracking-[0.03em] text-muted/50 hover:text-muted/80 transition-colors"
           style={{ appearance: "none", background: "none", border: "none", cursor: "pointer", padding: "2px 8px" }}
-          onClick={() => {
-            if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
-            const audio = peelAudioRef.current;
-            audio.init();
-            fireHaptic();
-            // rAF-based buzz: ~62 clicks/sec for 1s (matches web-haptics buzz preset exactly)
-            let start = 0;
-            let last = 0;
-            const buzzTest = (ts: number) => {
-              if (!start) start = ts;
-              if (ts - start >= 1000) return;
-              if (ts - last >= 16) { audio.tick(1.0); last = ts; }
-              requestAnimationFrame(buzzTest);
-            };
-            requestAnimationFrame(buzzTest);
-          }}
+          onClick={() => triggerRef.current("buzz")}
         >
           tap to test haptics
         </button>
