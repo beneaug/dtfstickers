@@ -381,6 +381,25 @@ export function StickerPeelPreview({
     display: "block",
   };
 
+  // Shared mask style — clips finish overlays to sticker alpha shape
+  const finishOverlayBase: React.CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    WebkitMaskImage: `url(${imageUrl})`,
+    WebkitMaskSize: `${displayW}px ${displayH}px`,
+    WebkitMaskRepeat: "no-repeat",
+    maskImage: `url(${imageUrl})`,
+  };
+
+  const glossStyle: React.CSSProperties = {
+    ...finishOverlayBase,
+    background: [
+      "linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.05) 35%, rgba(255,255,255,0.14) 44%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.14) 56%, rgba(255,255,255,0.05) 65%, transparent 75%)",
+      "radial-gradient(ellipse at 38% 32%, rgba(255,255,255,0.08) 0%, transparent 55%)",
+    ].join(", "),
+  };
+
   // Shadow needs to span the full sticker diagonal
   const shadowLength = Math.ceil(Math.sqrt(displayW * displayW + displayH * displayH)) + 20;
 
@@ -490,20 +509,9 @@ export function StickerPeelPreview({
                 if (w && h) setImgDims({ w, h });
               }}
             />
-            {finish === "gloss" && (
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 55%, transparent 70%)",
-                pointerEvents: "none",
-                borderRadius: "inherit",
-              }} />
-            )}
+            {finish === "gloss" && <div style={glossStyle} />}
             {finish === "holographic" && (
-              <div className="holo-overlay" style={{
-                position: "absolute", inset: 0,
-                pointerEvents: "none",
-                borderRadius: "inherit",
-              }} />
+              <div className="holo-overlay" style={finishOverlayBase} />
             )}
           </div>
 
@@ -557,20 +565,9 @@ export function StickerPeelPreview({
               }}
               draggable={false}
             />
-            {finish === "gloss" && (
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 55%, transparent 70%)",
-                pointerEvents: "none",
-                borderRadius: "inherit",
-              }} />
-            )}
+            {finish === "gloss" && <div style={glossStyle} />}
             {finish === "holographic" && (
-              <div className="holo-overlay" style={{
-                position: "absolute", inset: 0,
-                pointerEvents: "none",
-                borderRadius: "inherit",
-              }} />
+              <div className="holo-overlay" style={finishOverlayBase} />
             )}
           </div>
         </div>

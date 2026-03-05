@@ -259,25 +259,39 @@ main {
 /* --- Finish overlays --- */
 
 .holo-overlay {
-  background: linear-gradient(
-    135deg,
-    rgba(255,0,0,0.13),
-    rgba(255,165,0,0.13),
-    rgba(255,255,0,0.13),
-    rgba(0,255,0,0.13),
-    rgba(0,150,255,0.13),
-    rgba(128,0,255,0.13),
-    rgba(255,0,0,0.13)
-  );
-  mix-blend-mode: color;
-  background-size: 200% 200%;
-  animation: holo-shift 3s ease-in-out infinite;
+  background:
+    /* Layer 1 — fine diagonal diffraction lines (static) */
+    repeating-linear-gradient(
+      135deg,
+      rgba(255,255,255,0.06) 0px,
+      transparent 1.5px,
+      transparent 5px
+    ),
+    /* Layer 2 — rainbow prismatic bands (animated) */
+    linear-gradient(
+      135deg,
+      rgba(255,0,60,0.18),
+      rgba(255,150,0,0.14),
+      rgba(255,255,0,0.10),
+      rgba(0,230,80,0.14),
+      rgba(0,120,255,0.20),
+      rgba(150,0,255,0.16),
+      rgba(255,0,60,0.12),
+      rgba(255,150,0,0.16),
+      rgba(0,230,80,0.10),
+      rgba(0,120,255,0.18),
+      rgba(150,0,255,0.14),
+      rgba(255,0,60,0.18)
+    );
+  mix-blend-mode: overlay;
+  background-size: 6px 6px, 400% 400%;
+  animation: holo-shift 5s ease-in-out infinite;
 }
 
 @keyframes holo-shift {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
+  0%   { background-position: 0 0, 0% 0%; }
+  50%  { background-position: 0 0, 100% 100%; }
+  100% { background-position: 0 0, 0% 0%; }
 }
 
 /* --- Drop zone --- */
