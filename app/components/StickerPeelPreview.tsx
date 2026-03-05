@@ -389,16 +389,16 @@ export function StickerPeelPreview({
   //
   // 1. Direct checkbox-switch trick (ios-haptics pattern) — no library.
   //    hapticTick() / hapticBuzz() call label.click() DIRECTLY, with zero
-  //    intermediate layers. This ensures the click happens in the same
-  //    synchronous call frame as the user gesture event.
+  //    intermediate layers, in the same synchronous call frame.
   //
-  // 2. Native touchend for haptic firing. Touch events bypass pointer
-  //    capture entirely (separate targeting model). touchend has guaranteed
-  //    user activation context in WebKit (ActivationTriggering).
+  // 2. Haptics fire from pointerup (handlePointerEnd), NOT touchend.
+  //    setPointerCapture() suppresses subsequent touch events (including
+  //    touchend) per the Pointer Events spec. pointerup IS activation-
+  //    triggering for touch pointers in WebKit.
   //
-  // 3. Container is a <div>, not <button>. Buttons on iOS Safari have
-  //    built-in touch overhead (focus, tap highlight, accessibility rotor)
-  //    that causes lag during pointer event processing.
+  // 3. Haptic calls are the FIRST thing in handlePointerEnd — before
+  //    releasePointerCapture or any state mutation — to ensure the user
+  //    gesture scope from pointerup is still on the WebKit stack.
   //
   // 4. PeelAudio provides audio feedback during drag (Web Audio API).
 
@@ -423,52 +423,6 @@ export function StickerPeelPreview({
     };
     buzzRafRef.current = requestAnimationFrame(buzzLoop);
   }, []);
-
-  // --- Native touchend: fires haptic with guaranteed user activation ---
-  // Touch events bypass pointer capture entirely.
-  // Uses direct hapticTick()/hapticBuzz() — zero library overhead.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onTouchEnd = () => {
-      const peel = peelRef.current;
-
-      if (peel <= REST_PEEL + 0.03) {
-        // Tap — fire 1-second buzz for activation
-        if (!snappedRef.current && !activatedRef.current) {
-          // Cancel any prior buzz
-          buzzCancelRef.current?.();
-          // Fire buzz DIRECTLY — no library, no wrappers, just label.click()
-          buzzCancelRef.current = hapticBuzz(1000);
-          activatedRef.current = true;
-          peelRef.current = 0.15;
-          applyPeelToDOM();
-          if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
-          activationTimerRef.current = setTimeout(() => {
-            activatedRef.current = false;
-            activationTimerRef.current = null;
-            if (activePointerRef.current === null && !snappedRef.current) {
-              runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-                angleRef.current = DEFAULT_DRAG_ANGLE;
-                applyPeelToDOM();
-              });
-            }
-          }, ACTIVATION_WINDOW);
-        }
-      } else if (peel > SNAP_THRESHOLD && !snappedRef.current) {
-        // Snap — celebratory buzz
-        buzzCancelRef.current?.();
-        buzzCancelRef.current = hapticBuzz(1000);
-      } else if (peel > REST_PEEL + 0.03 && !snappedRef.current) {
-        // Release below threshold — single tick
-        hapticTick();
-      }
-    };
-
-    el.addEventListener("touchend", onTouchEnd);
-    return () => el.removeEventListener("touchend", onTouchEnd);
-  }, [applyPeelToDOM, runSpringAnimation]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -560,13 +514,33 @@ export function StickerPeelPreview({
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
 
+      // Fire haptic FIRST — synchronously, before any state changes.
+      // pointerup from touch IS activation-triggering in WebKit.
+      // _hapticLabel.click() runs in the same synchronous frame.
+      const currentPeel = peelRef.current;
+
+      if (currentPeel <= REST_PEEL + 0.03) {
+        // Tap — fire 1-second haptic buzz for activation
+        if (!snappedRef.current && !activatedRef.current) {
+          buzzCancelRef.current?.();
+          buzzCancelRef.current = hapticBuzz(1000);
+        }
+      } else if (currentPeel > SNAP_THRESHOLD && !snappedRef.current) {
+        // Snap — celebratory haptic buzz
+        buzzCancelRef.current?.();
+        buzzCancelRef.current = hapticBuzz(1000);
+      } else if (currentPeel > REST_PEEL + 0.03 && !snappedRef.current) {
+        // Release below threshold — single haptic tick
+        hapticTick();
+      }
+
+      // Now handle pointer state + animations
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
 
       activePointerRef.current = null; // Stops buzz audio rAF loop
       if (buzzRafRef.current) { cancelAnimationFrame(buzzRafRef.current); buzzRafRef.current = null; }
-      const currentPeel = peelRef.current;
       const vel = velocityTracker.current.get();
 
       let springVel = vel.speed * 0.8;
@@ -579,12 +553,28 @@ export function StickerPeelPreview({
       peelSpring.current.velocity = springVel;
       dragStartRef.current = null;
 
-      // Tap — touchend already fired haptic and set activatedRef.
+      // Tap — activate the sticker
       if (currentPeel <= REST_PEEL + 0.03) {
+        if (!snappedRef.current && !activatedRef.current) {
+          activatedRef.current = true;
+          peelRef.current = 0.15;
+          applyPeelToDOM();
+          if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+          activationTimerRef.current = setTimeout(() => {
+            activatedRef.current = false;
+            activationTimerRef.current = null;
+            if (activePointerRef.current === null && !snappedRef.current) {
+              runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+                angleRef.current = DEFAULT_DRAG_ANGLE;
+                applyPeelToDOM();
+              });
+            }
+          }, ACTIVATION_WINDOW);
+        }
         return;
       }
 
-      // --- Drag release (visuals + animations only, haptic from touchend) ---
+      // --- Drag release ---
       if (currentPeel > SNAP_THRESHOLD) {
         peelAudioRef.current?.tick(1.0);
         snappedRef.current = true;
