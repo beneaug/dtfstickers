@@ -509,7 +509,7 @@ export function StickerPeelPreview({
                   in="SourceAlpha"
                   result="shape"
                 />
-                <feFlood floodColor="#e8e4dd" result="flood" />
+                <feFlood floodColor="#e4e6ea" result="flood" />
                 <feComposite operator="in" in="flood" in2="shape" />
               </filter>
             </defs>
@@ -620,11 +620,11 @@ export function StickerPeelPreview({
               transform: initFold.flapTransform,
               transformOrigin: "0 0",
               willChange: "clip-path, transform",
-              background: isSquareCut ? "#e8e4dd" : undefined,
+              background: isSquareCut ? "#e4e6ea" : undefined,
               borderRadius: isSquareCut ? 4 : undefined,
             }}
           >
-            {/* Back face is just backing paper — no finish overlays */}
+            {/* Back face — backing shape */}
             {!isSquareCut && (
               <img
                 src={imageUrl}
@@ -636,6 +636,27 @@ export function StickerPeelPreview({
                 draggable={false}
               />
             )}
+            {/* Adhesive sheen — glossy sticky surface */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                borderRadius: isSquareCut ? 4 : undefined,
+                background: [
+                  "linear-gradient(145deg, transparent 20%, rgba(255,255,255,0.12) 38%, rgba(255,255,255,0.28) 46%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.28) 54%, rgba(255,255,255,0.12) 62%, transparent 80%)",
+                  "radial-gradient(ellipse at 55% 40%, rgba(255,255,255,0.18) 0%, transparent 55%)",
+                ].join(", "),
+                ...(isSquareCut ? {} : {
+                  WebkitMaskImage: `url(${imageUrl})`,
+                  WebkitMaskSize: "100% 100%",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskImage: `url(${imageUrl})`,
+                  maskSize: "100% 100%",
+                  maskRepeat: "no-repeat",
+                }),
+              }}
+            />
           </div>
         </div>
       </div>
