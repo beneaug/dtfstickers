@@ -186,7 +186,6 @@ export function StickerPeelPreview({
   // haptic feedback during drag.
   const activatedRef = useRef(false);
   const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tapStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // Spring state
   const peelSpring = useRef<SpringState>({ value: REST_PEEL, velocity: 0 });
@@ -338,27 +337,18 @@ export function StickerPeelPreview({
 
   // --- Pointer Handlers ---
   //
-  // Tap-to-activate haptic strategy:
+  // Haptic strategy — tap-to-activate via native onClick:
   //
-  // iOS Safari only grants user activation on pointerUp/touchEnd (not pointerDown
-  // or pointerMove). So we use a two-phase interaction:
+  // iOS Safari suppresses `click` after drag movement, so onClick ONLY fires
+  // for real taps. onClick has full user activation → trigger("buzz") works.
+  // The buzz runs for 2 seconds via web-haptics' rAF loop. If the user
+  // touches again within that window and drags, the Taptic Engine buzz
+  // overlaps with the peel animation.
   //
-  // Phase 1 — ACTIVATE: User taps sticker (quick touch + release).
-  //   On pointerUp with minimal movement, we fire trigger("buzz") for a 1-second
-  //   Taptic Engine buzz + visual "activated" cue. The sticker lifts slightly.
-  //
-  // Phase 2 — PEEL: User touches again within ~2s and drags.
-  //   The buzz from Phase 1 is still running via web-haptics' rAF loop.
-  //   The peel drag plays out WITH haptic feedback already active.
-  //   Audio buzz from PeelAudio supplements after the 1s haptic expires.
-  //
-  // If the user drags immediately (no tap first), they get audio buzz only.
-  // On mouse devices, this two-phase isn't needed since mousedown is activation-
-  // triggering, but the flow still works naturally.
+  // Direct drags (no tap first) get audio buzz from PeelAudio.
+  // Snap/release on pointerUp get real haptic (activation-triggering for touch).
 
-  const TAP_MOVE_THRESHOLD = 12; // px — max movement to count as a tap
-  const TAP_TIME_THRESHOLD = 300; // ms — max duration to count as a tap
-  const ACTIVATION_WINDOW = 2000; // ms — how long activation lasts
+  const ACTIVATION_WINDOW = 2500; // ms — activation lasts for buzz overlap
 
   const startBuzzAudio = useCallback(() => {
     if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
@@ -380,6 +370,39 @@ export function StickerPeelPreview({
     buzzRafRef.current = requestAnimationFrame(buzzLoop);
   }, []);
 
+  // --- onClick: tap-to-activate (browser's own tap detection, most reliable) ---
+  // iOS Safari only fires click for clean taps, NOT after drag movement.
+  // This uses the exact same mechanism as the working test button.
+  const handleClick = useCallback(() => {
+    if (snappedRef.current || activatedRef.current) return;
+    // Only activate if sticker is near rest (not mid-peel)
+    if (peelRef.current > REST_PEEL + 0.05) return;
+
+    // Fire 2-second buzz — two chained 1000ms segments (library clamps each to 1s max)
+    triggerRef.current([
+      { duration: 1000, intensity: 1 },
+      { duration: 1000, intensity: 1 },
+    ]);
+    activatedRef.current = true;
+
+    // Visual cue: lift sticker corner slightly
+    peelRef.current = 0.15;
+    applyPeelToDOM();
+
+    // Auto-settle after activation window
+    if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+    activationTimerRef.current = setTimeout(() => {
+      activatedRef.current = false;
+      activationTimerRef.current = null;
+      if (activePointerRef.current === null && !snappedRef.current) {
+        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+          angleRef.current = DEFAULT_DRAG_ANGLE;
+          applyPeelToDOM();
+        });
+      }
+    }, ACTIVATION_WINDOW);
+  }, [applyPeelToDOM, runSpringAnimation]);
+
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -388,13 +411,6 @@ export function StickerPeelPreview({
       activePointerRef.current = event.pointerId;
       animatingRef.current = false;
       snappedRef.current = false;
-
-      // Record tap start for tap detection
-      tapStartRef.current = {
-        x: event.clientX,
-        y: event.clientY,
-        time: performance.now(),
-      };
 
       // Unlock audio context
       if (!peelAudioRef.current) peelAudioRef.current = new PeelAudio();
@@ -413,8 +429,8 @@ export function StickerPeelPreview({
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
-      // If already activated (from a prior tap), start audio buzz immediately
-      // since the haptic buzz from the tap is already running
+      // If activated (from a prior tap), start audio buzz immediately to
+      // supplement the haptic buzz that's already running
       if (activatedRef.current) {
         startBuzzAudio();
       }
@@ -445,14 +461,12 @@ export function StickerPeelPreview({
       const dy = event.clientY - dragStartRef.current.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Once the user moves past the tap threshold, this is a drag — start audio
-      // buzz if not already running (for drags without prior tap activation)
-      if (dist > TAP_MOVE_THRESHOLD && buzzRafRef.current === null) {
-        tapStartRef.current = null; // No longer a tap
+      // Start audio buzz once drag movement begins (if not already running)
+      if (dist > 15 && buzzRafRef.current === null) {
         startBuzzAudio();
       }
 
-      // Smooth angle blending — fluid direction changes, no jitter
+      // Smooth angle blending
       const rawAngle = continuousDragAngle(dx, dy, angleRef.current);
       const blend = clamp((dist - 40) / 250, 0, 0.06);
       angleRef.current = lerpAngle(angleRef.current, rawAngle, blend);
@@ -497,47 +511,15 @@ export function StickerPeelPreview({
         if (radialDot < 0) springVel = -springVel;
       }
       peelSpring.current.velocity = springVel;
-
-      // --- Tap detection: quick touch+release with minimal movement ---
-      const wasTap = tapStartRef.current !== null &&
-        performance.now() - tapStartRef.current.time < TAP_TIME_THRESHOLD &&
-        Math.abs(event.clientX - tapStartRef.current.x) < TAP_MOVE_THRESHOLD &&
-        Math.abs(event.clientY - tapStartRef.current.y) < TAP_MOVE_THRESHOLD;
-      tapStartRef.current = null;
-
       dragStartRef.current = null;
 
-      // If this was a tap (not a drag), activate haptic buzz + visual cue
-      if (wasTap && !activatedRef.current && currentPeel <= REST_PEEL + 0.05) {
-        // pointerUp IS activation-triggering — fire 1-second haptic buzz
-        triggerRef.current("buzz");
-        activatedRef.current = true;
-
-        // Visual activation cue: slight lift animation
-        peelRef.current = 0.15;
-        applyPeelToDOM();
-
-        // Clear any previous activation timer
-        if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
-
-        // Activation window: buzz runs for 1s, give 2s for user to start drag
-        activationTimerRef.current = setTimeout(() => {
-          activatedRef.current = false;
-          activationTimerRef.current = null;
-          // If not currently dragging, settle back to rest
-          if (activePointerRef.current === null && !snappedRef.current) {
-            runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-              angleRef.current = DEFAULT_DRAG_ANGLE;
-              applyPeelToDOM();
-            });
-          }
-        }, ACTIVATION_WINDOW);
-
-        return; // Don't process as a normal release
+      // If sticker barely moved (tap), let onClick handle the buzz activation.
+      // Don't fire nudge or spring-back — onClick fires right after this.
+      if (currentPeel <= REST_PEEL + 0.03) {
+        return;
       }
 
-      // --- Normal drag release ---
-
+      // --- Drag release ---
       // pointerUp IS activation-triggering for touch.
       if (currentPeel > SNAP_THRESHOLD) {
         triggerRef.current("buzz"); // 1-second buzz on snap
@@ -636,6 +618,7 @@ export function StickerPeelPreview({
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center select-none"
         style={{ touchAction: "none" }}
+        onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
