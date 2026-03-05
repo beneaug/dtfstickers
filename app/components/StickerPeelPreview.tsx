@@ -57,7 +57,7 @@ function getStrokeWidth(displaySize: number): number {
 }
 
 function getDragRange(displaySize: number): number {
-  return Math.max(120, displaySize * 0.7);
+  return Math.max(180, displaySize * 1.15);
 }
 
 
