@@ -49,18 +49,31 @@ export function CheckoutStep({
     const displayData = lastCheckout ?? form;
     return (
       <section className="panel space-y-4 p-5 sm:p-6">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Done</p>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted">Order confirmed</p>
         <h3 className="text-3xl font-bold tracking-[-0.02em] text-[var(--text)]">
           They&apos;re on the way.
         </h3>
-        <div className="panel-soft p-4 text-sm text-muted">
-          <p className="mb-1 text-[var(--text)]">{itemSummary}</p>
-          <p className="mb-1">Order {orderId}</p>
-          <p>Total: {total}</p>
-          <p className="mt-2">We&apos;ll send updates to {displayData.email}</p>
+        <div className="panel-soft space-y-2 p-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--text)] font-medium">{itemSummary}</span>
+          </div>
+          <div className="flex items-center justify-between text-muted">
+            <span>Order</span>
+            <span className="font-mono text-[12px]">{orderId}</span>
+          </div>
+          <div className="flex items-center justify-between text-muted">
+            <span>Total</span>
+            <span className="font-medium text-[var(--text)]">{total}</span>
+          </div>
+          <p className="pt-1 text-muted">
+            We&apos;ll send tracking updates to {displayData.email}
+          </p>
         </div>
+        <p className="text-[11px] tracking-[0.04em] text-muted">
+          Expect delivery in 3&ndash;5 business days. Questions? Reach out anytime.
+        </p>
         <button type="button" onClick={onBack} className="btn-ghost">
-          &larr; Make another
+          &larr; Order more stickers
         </button>
       </section>
     );

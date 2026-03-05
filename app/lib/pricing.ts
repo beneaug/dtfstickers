@@ -8,15 +8,15 @@ export const SIZE_OPTIONS = [
 export const QUANTITY_OPTIONS = [25, 50, 100, 200, 300, 500] as const;
 
 export const FINISH_OPTIONS = [
-  { value: "matte", label: "Matte" },
-  { value: "gloss", label: "Gloss" },
-  { value: "holographic", label: "Holographic" },
+  { value: "matte", label: "Matte", blurb: "Smooth, no-glare surface" },
+  { value: "gloss", label: "Gloss", blurb: "Vivid colors, reflective sheen" },
+  { value: "holographic", label: "Holographic", blurb: "Rainbow prismatic shimmer" },
 ] as const;
 
 export const CUT_OPTIONS = [
-  { value: "die-cut", label: "Die Cut" },
-  { value: "kiss-cut", label: "Kiss Cut" },
-  { value: "square", label: "Square" },
+  { value: "die-cut", label: "Die Cut", blurb: "Contour-cut to your design" },
+  { value: "kiss-cut", label: "Kiss Cut", blurb: "On a peelable backing sheet" },
+  { value: "square", label: "Square", blurb: "Simple rectangle border" },
 ] as const;
 
 type SizeKey = (typeof SIZE_OPTIONS)[number]["value"];

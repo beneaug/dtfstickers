@@ -2,6 +2,8 @@
 
 import { useCallback, useRef, useState, type DragEvent } from "react";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 interface UploadStepProps {
   onFileSelected: (file: File) => void;
 }
@@ -9,10 +11,19 @@ interface UploadStepProps {
 export function UploadStep({ onFileSelected }: UploadStepProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/") && !file.name.match(/\.(svg|webp|avif|heic)$/i)) return;
+      setError(null);
+      if (!file.type.startsWith("image/") && !file.name.match(/\.(svg|webp|avif|heic)$/i)) {
+        setError("Unsupported file type. Use PNG, JPG, SVG, WEBP, or HEIC.");
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 10 MB.`);
+        return;
+      }
       onFileSelected(file);
     },
     [onFileSelected],
@@ -79,8 +90,11 @@ export function UploadStep({ onFileSelected }: UploadStepProps) {
           </button>
         )}
         <p className="text-[11px] tracking-[0.04em] text-muted">
-          PNG, JPG, SVG, WEBP, HEIC &mdash; stays private until you checkout
+          PNG, JPG, SVG, WEBP, HEIC &mdash; max 10 MB
         </p>
+        {error && (
+          <p className="mt-1 text-[12px] font-medium text-red-500">{error}</p>
+        )}
       </div>
     </section>
   );

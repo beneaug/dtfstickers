@@ -97,6 +97,9 @@ export function OptionsPanel({
               />
             ))}
           </div>
+          <p className="text-[11px] tracking-[0.02em] text-muted">
+            {SIZE_OPTIONS.find((o) => o.value === size)?.blurb}
+          </p>
         </section>
 
         <section className="space-y-2">
@@ -125,6 +128,9 @@ export function OptionsPanel({
               />
             ))}
           </div>
+          <p className="text-[11px] tracking-[0.02em] text-muted">
+            {FINISH_OPTIONS.find((o) => o.value === finish)?.blurb}
+          </p>
         </section>
 
         <section className="space-y-2">
@@ -140,20 +146,30 @@ export function OptionsPanel({
               />
             ))}
           </div>
+          <p className="text-[11px] tracking-[0.02em] text-muted">
+            {CUT_OPTIONS.find((o) => o.value === cut)?.blurb}
+          </p>
         </section>
 
         <div className="panel-soft p-3 text-sm">
           <div className="mb-1 flex items-center justify-between text-muted">
-            <span>{quantity} stickers</span>
+            <span className="flex items-center gap-1.5">
+              {quantity} stickers
+              {pricing.discountPercent > 0 && (
+                <span className="rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {Math.round(pricing.discountPercent * 100)}% off
+                </span>
+              )}
+            </span>
             <span>{formatCurrency(pricing.subtotal)}</span>
           </div>
           <div className="mb-1 flex items-center justify-between text-muted">
-            <span>Shipping</span>
+            <span>{formatCurrency(pricing.unitPrice)}/ea</span>
             <span>
               {pricing.shipping === 0 ? (
-                <span className="font-medium text-[var(--text)]">Free</span>
+                <span className="font-medium text-[var(--text)]">Free shipping</span>
               ) : (
-                formatCurrency(pricing.shipping)
+                <span>+{formatCurrency(pricing.shipping)} shipping</span>
               )}
             </span>
           </div>

@@ -53,7 +53,7 @@ export default function HomePage() {
   return (
     <>
       <EmojiCanvas />
-      <main className="px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
+      <main className="px-4 pb-[max(3rem,env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pt-8">
         <div className="mx-auto w-full max-w-[42rem]">
           <header className="mb-6 text-center">
             <p className="text-[12px] font-bold tracking-[0.14em] text-muted uppercase">
@@ -74,21 +74,21 @@ export default function HomePage() {
           {w.step === "upload" && (
             <section className="mt-4 grid gap-2 sm:grid-cols-3">
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">Tough stuff</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Weatherproof vinyl</p>
                 <p className="mt-1 text-sm font-bold text-[var(--text)]">
-                  Survives rain, sun, dishwashers
+                  Survives rain, sun &amp; dishwashers
                 </p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">Three finishes</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">Ships in 3&ndash;5 days</p>
                 <p className="mt-1 text-sm font-bold text-[var(--text)]">
-                  Matte &middot; Gloss &middot; Holographic
+                  Free shipping over $65
                 </p>
               </article>
               <article className="panel-soft p-3.5">
-                <p className="text-[11px] tracking-[0.06em] text-muted">No-brainer guarantee</p>
+                <p className="text-[11px] tracking-[0.06em] text-muted">100% guarantee</p>
                 <p className="mt-1 text-sm font-bold text-[var(--text)]">
-                  Don&apos;t love it? We&apos;ll redo it.
+                  Don&apos;t love them? We redo it free.
                 </p>
               </article>
             </section>
