@@ -10,7 +10,13 @@ export const QUANTITY_OPTIONS = [25, 50, 100, 200, 300, 500] as const;
 export const FINISH_OPTIONS = [
   { value: "matte", label: "Matte", blurb: "Smooth, no-glare surface" },
   { value: "gloss", label: "Gloss", blurb: "Vivid colors, reflective sheen" },
-  { value: "holographic", label: "Holographic", blurb: "Rainbow prismatic shimmer" },
+  { value: "holographic", label: "Holographic", blurb: "Classic rainbow foil with shifting light bands" },
+  { value: "prismatic", label: "Prismatic", blurb: "Sharper geometric diffraction and rainbow split" },
+  { value: "glitter", label: "Glitter", blurb: "Metallic sparkle with dense reflective flecks" },
+  { value: "clear", label: "Clear", blurb: "Transparent vinyl with glassy laminate edges" },
+  { value: "mirror", label: "Mirror", blurb: "High-polish chrome look with hard reflections" },
+  { value: "brushed-aluminum", label: "Brushed", blurb: "Cool metallic grain with directional sheen" },
+  { value: "glow", label: "Glow", blurb: "Phosphor-tinted finish with soft luminous cast" },
 ] as const;
 
 export const CUT_OPTIONS = [
@@ -34,6 +40,12 @@ const FINISH_MULTIPLIER: Record<FinishKey, number> = {
   matte: 1,
   gloss: 1.07,
   holographic: 1.22,
+  prismatic: 1.24,
+  glitter: 1.19,
+  clear: 1.11,
+  mirror: 1.26,
+  "brushed-aluminum": 1.21,
+  glow: 1.2,
 };
 
 const CUT_MULTIPLIER: Record<CutKey, number> = {
@@ -92,4 +104,3 @@ export function calculatePricing(selection: StickerSelection): PricingBreakdown 
     total,
   };
 }
-

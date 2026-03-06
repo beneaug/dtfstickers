@@ -123,6 +123,7 @@ export function OptionsPanel({
               <Chip
                 key={option.value}
                 value={option.value}
+                label={option.label}
                 active={finish}
                 onSelect={hapticSelect(onFinishChange)}
               />

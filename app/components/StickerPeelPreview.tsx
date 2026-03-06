@@ -93,6 +93,7 @@ export function StickerPeelPreview({
 
   // DOM refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const stickerMainRef = useRef<HTMLDivElement>(null);
   const flapRef = useRef<HTMLDivElement>(null);
   const foldShadowRef = useRef<HTMLDivElement>(null);
@@ -130,6 +131,41 @@ export function StickerPeelPreview({
     };
   }, []);
 
+  const applyMaterialLighting = useCallback((xPct: number, yPct: number) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const x = clamp(xPct, 0, 100);
+    const y = clamp(yPct, 0, 100);
+    const offsetX = x - 50;
+    const offsetY = y - 50;
+    const distance = clamp(Math.sqrt(offsetX * offsetX + offsetY * offsetY) / 55, 0, 1);
+
+    stage.style.setProperty("--foil-pointer-x", `${x.toFixed(1)}%`);
+    stage.style.setProperty("--foil-pointer-y", `${y.toFixed(1)}%`);
+    stage.style.setProperty("--foil-bg-x", `${(34 + x * 0.64).toFixed(1)}%`);
+    stage.style.setProperty("--foil-bg-y", `${(24 + y * 0.72).toFixed(1)}%`);
+    stage.style.setProperty("--foil-opposite-x", `${(100 - x).toFixed(1)}%`);
+    stage.style.setProperty("--foil-opposite-y", `${(100 - y).toFixed(1)}%`);
+    stage.style.setProperty("--foil-glare-opacity", `${(0.16 + distance * 0.72).toFixed(3)}`);
+    stage.style.setProperty("--foil-tilt", `${(offsetX * 0.18).toFixed(2)}deg`);
+  }, []);
+
+  const updateMaterialLightingFromClient = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = stageRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const xPct = ((clientX - rect.left) / rect.width) * 100;
+      const yPct = ((clientY - rect.top) / rect.height) * 100;
+      applyMaterialLighting(xPct, yPct);
+    },
+    [applyMaterialLighting],
+  );
+
+  const resetMaterialLighting = useCallback(() => {
+    applyMaterialLighting(52, 38);
+  }, [applyMaterialLighting]);
+
   // --- Apply peel to DOM via computed fold-line polygons ---
   // The sticker image stays perfectly still. Only clip-path shapes change.
   // The flap is reflected across the fold line using a CSS matrix transform.
@@ -138,6 +174,7 @@ export function StickerPeelPreview({
     const peel = peelRef.current;
     const angle = angleRef.current;
     const { w, h } = displayDimsRef.current;
+    const lift = clamp((peel - REST_PEEL) / (1 - REST_PEEL), 0, 1);
 
     const fold = computeFold(angle, peel, w, h);
 
@@ -172,6 +209,15 @@ export function StickerPeelPreview({
       );
     }
 
+    if (stageRef.current) {
+      const angleRad = (angle * Math.PI) / 180;
+      const depthX = Math.cos(angleRad) * lift * 2.2;
+      const depthY = 1.6 + lift * 4.1;
+      stageRef.current.style.setProperty("--edge-depth-x", `${depthX.toFixed(2)}px`);
+      stageRef.current.style.setProperty("--edge-depth-y", `${depthY.toFixed(2)}px`);
+      stageRef.current.style.setProperty("--edge-rim-opacity", `${(0.68 + lift * 0.24).toFixed(3)}`);
+    }
+
   }, []);
 
   // Reset on image/size change
@@ -190,6 +236,10 @@ export function StickerPeelPreview({
   useEffect(() => {
     if (imgDims) requestAnimationFrame(() => applyPeelToDOM());
   }, [imgDims, applyPeelToDOM]);
+
+  useEffect(() => {
+    resetMaterialLighting();
+  }, [resetMaterialLighting]);
 
   // --- Spring Animation Loop ---
 
@@ -250,6 +300,7 @@ export function StickerPeelPreview({
       if (event.pointerType === "mouse" && event.button !== 0) return;
       if (activePointerRef.current !== null) return;
 
+      updateMaterialLightingFromClient(event.clientX, event.clientY);
       activePointerRef.current = event.pointerId;
       animatingRef.current = false;
       snappedRef.current = false;
@@ -271,11 +322,13 @@ export function StickerPeelPreview({
         clientY: event.clientY,
       };
     },
-    [],
+    [updateMaterialLightingFromClient],
   );
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
+      updateMaterialLightingFromClient(event.clientX, event.clientY);
+
       if (
         activePointerRef.current !== event.pointerId ||
         !dragStartRef.current ||
@@ -322,12 +375,13 @@ export function StickerPeelPreview({
         });
       }
     },
-    [applyPeelToDOM, dragRange],
+    [applyPeelToDOM, dragRange, updateMaterialLightingFromClient],
   );
 
   const handlePointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (activePointerRef.current !== event.pointerId) return;
+      updateMaterialLightingFromClient(event.clientX, event.clientY);
       const hadDrag = dragStartedRef.current;
 
       if (pointerCapturedRef.current && event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -376,9 +430,15 @@ export function StickerPeelPreview({
           applyPeelToDOM();
         });
       }
+
+      resetMaterialLighting();
     },
-    [runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM],
+    [runSpringAnimation, onSnap, getBurstPos, applyPeelToDOM, resetMaterialLighting, updateMaterialLightingFromClient],
   );
+
+  const handlePointerLeave = useCallback(() => {
+    if (activePointerRef.current === null) resetMaterialLighting();
+  }, [resetMaterialLighting]);
 
   useEffect(() => {
     return () => {
@@ -392,6 +452,9 @@ export function StickerPeelPreview({
 
   const isSquareCut = cut === "square";
   const isKissCut = cut === "kiss-cut";
+  const finishKey = finish ?? "matte";
+  const usesClearSubstrate = finishKey === "clear";
+  const usesWhiteStroke = !isSquareCut && !usesClearSubstrate;
 
   // Square cut: image inset to show white border; others: full size
   const squareInset = isSquareCut ? strokeW : 0;
@@ -403,9 +466,7 @@ export function StickerPeelPreview({
     display: "block",
   };
 
-  // For die-cut and kiss-cut: mask overlays to sticker alpha contour
-  // For square: overlays cover the full rectangle
-  const finishOverlayBase: React.CSSProperties = isSquareCut
+  const contourMaskStyle: React.CSSProperties = isSquareCut
     ? { position: "absolute", inset: 0, pointerEvents: "none" }
     : {
         position: "absolute",
@@ -419,13 +480,90 @@ export function StickerPeelPreview({
         maskRepeat: "no-repeat",
       };
 
+  const edgeLightStyle: React.CSSProperties = {
+    ...contourMaskStyle,
+    borderRadius: isSquareCut ? 4 : undefined,
+  };
+
   const glossStyle: React.CSSProperties = {
-    ...finishOverlayBase,
-    background: [
-      "linear-gradient(125deg, transparent 18%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0.20) 42%, rgba(255,255,255,0.42) 48.5%, rgba(255,255,255,0.48) 50.5%, rgba(255,255,255,0.42) 52.5%, rgba(255,255,255,0.20) 58%, rgba(255,255,255,0.03) 68%, transparent 82%)",
-      "linear-gradient(235deg, transparent 45%, rgba(255,255,255,0.06) 58%, rgba(255,255,255,0.14) 66%, rgba(255,255,255,0.06) 74%, transparent 88%)",
-      "radial-gradient(ellipse at 36% 28%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 45%, transparent 70%)",
-    ].join(", "),
+    ...edgeLightStyle,
+    background:
+      "linear-gradient(calc(160deg + var(--foil-tilt)), rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.14) 18%, transparent 42%, rgba(200,214,224,0.16) 72%, rgba(255,255,255,0.4) 100%), radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.3) 0%, transparent 38%)",
+    opacity: 0.62,
+  };
+
+  const stageStyle = {
+    width: displayW,
+    height: displayH,
+    userSelect: "none",
+    WebkitTouchCallout: "none",
+    WebkitTapHighlightColor: "transparent",
+    "--foil-pointer-x": "52%",
+    "--foil-pointer-y": "38%",
+    "--foil-bg-x": "50%",
+    "--foil-bg-y": "46%",
+    "--foil-opposite-x": "48%",
+    "--foil-opposite-y": "62%",
+    "--foil-glare-opacity": "0.18",
+    "--foil-tilt": "0deg",
+    "--edge-depth-x": "0px",
+    "--edge-depth-y": "2px",
+    "--edge-rim-opacity": "0.72",
+  } as React.CSSProperties;
+
+  const renderFinishLayers = () => {
+    switch (finishKey) {
+      case "gloss":
+        return <div className="finish-gloss-laminate" style={glossStyle} />;
+      case "holographic":
+        return (
+          <>
+            <div className="finish-holo-spectrum" style={edgeLightStyle} />
+            <div className="finish-holo-shine" style={edgeLightStyle} />
+            <div className="finish-holo-glare" style={edgeLightStyle} />
+          </>
+        );
+      case "prismatic":
+        return (
+          <>
+            <div className="finish-prismatic-spectrum" style={edgeLightStyle} />
+            <div className="finish-prismatic-shine" style={edgeLightStyle} />
+            <div className="finish-holo-glare" style={edgeLightStyle} />
+          </>
+        );
+      case "glitter":
+        return (
+          <>
+            <div className="finish-glitter-spectrum" style={edgeLightStyle} />
+            <div className="finish-glitter-glare" style={edgeLightStyle} />
+          </>
+        );
+      case "clear":
+        return <div className="finish-clear-shell" style={edgeLightStyle} />;
+      case "mirror":
+        return (
+          <>
+            <div className="finish-mirror-surface" style={edgeLightStyle} />
+            <div className="finish-holo-glare" style={edgeLightStyle} />
+          </>
+        );
+      case "brushed-aluminum":
+        return (
+          <>
+            <div className="finish-brushed-surface" style={edgeLightStyle} />
+            <div className="finish-soft-glare" style={edgeLightStyle} />
+          </>
+        );
+      case "glow":
+        return (
+          <>
+            <div className="finish-glow-surface" style={edgeLightStyle} />
+            <div className="finish-soft-glare" style={edgeLightStyle} />
+          </>
+        );
+      default:
+        return null;
+    }
   };
 
   // Initial fold length for first paint
@@ -449,19 +587,58 @@ export function StickerPeelPreview({
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
       >
         <div
-          className="relative"
-          style={{
-            width: displayW,
-            height: displayH,
-            userSelect: "none",
-            WebkitTouchCallout: "none",
-            WebkitTapHighlightColor: "transparent",
-          }}
+          ref={stageRef}
+          className="sticker-stage relative"
+          style={stageStyle}
         >
+          <div
+            className="sticker-depth-layer"
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          >
+            {isSquareCut ? (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: 4,
+                  background:
+                    finishKey === "clear"
+                      ? "linear-gradient(180deg, rgba(211,221,227,0.42) 0%, rgba(171,183,192,0.24) 100%)"
+                      : "linear-gradient(180deg, rgba(226,223,216,0.96) 0%, rgba(198,191,181,0.88) 100%)",
+                }}
+              />
+            ) : usesClearSubstrate ? (
+              <div
+                style={{
+                  ...edgeLightStyle,
+                  background:
+                    "linear-gradient(180deg, rgba(211,221,227,0.52) 0%, rgba(171,183,192,0.28) 100%)",
+                }}
+              />
+            ) : (
+              <img
+                src={imageUrl}
+                alt=""
+                style={{
+                  ...imgStyle,
+                  filter: `url(#ef-${uid})`,
+                }}
+                draggable={false}
+                aria-hidden
+              />
+            )}
+          </div>
+
           {/* SVG Filters — stroke + paper fill (rasterized once per layer) */}
           <svg
             width="0"
@@ -533,11 +710,14 @@ export function StickerPeelPreview({
           {/* Main sticker — the un-peeled part */}
           <div
             ref={stickerMainRef}
+            className="sticker-face"
             style={{
               clipPath: initFold.mainClip,
               willChange: "clip-path",
               background: isSquareCut ? "white" : undefined,
               borderRadius: isSquareCut ? 4 : undefined,
+              position: "relative",
+              zIndex: 1,
             }}
           >
             <img
@@ -545,7 +725,7 @@ export function StickerPeelPreview({
               alt="Sticker preview"
               style={{
                 ...imgStyle,
-                filter: isSquareCut ? undefined : `url(#stroke-${uid})`,
+                filter: usesWhiteStroke ? `url(#stroke-${uid})` : undefined,
                 borderRadius: isSquareCut ? 4 : undefined,
               }}
               draggable={false}
@@ -557,13 +737,9 @@ export function StickerPeelPreview({
                 if (w && h) setImgDims({ w, h });
               }}
             />
-            {finish === "gloss" && <div style={glossStyle} />}
-            {finish === "holographic" && (
-              <>
-                <div className="holo-tint" style={finishOverlayBase} />
-                <div className="holo-shine" style={finishOverlayBase} />
-              </>
-            )}
+            <div className="sticker-face-light" style={edgeLightStyle} />
+            <div className="sticker-edge-rim" style={edgeLightStyle} />
+            {renderFinishLayers()}
           </div>
 
           {/* Fold shadow + highlight — clipped to sticker bounds */}
@@ -611,6 +787,7 @@ export function StickerPeelPreview({
           {/* Peeled flap — reflected across fold line via CSS matrix */}
           <div
             ref={flapRef}
+            className="sticker-face sticker-flap"
             style={{
               position: "absolute",
               width: displayW,
@@ -622,6 +799,7 @@ export function StickerPeelPreview({
               transformOrigin: "0 0",
               willChange: "clip-path, transform",
               borderRadius: isSquareCut ? 4 : undefined,
+              zIndex: 3,
             }}
           >
             {/* Solid opaque backing — prevents any bleed-through */}
@@ -629,7 +807,7 @@ export function StickerPeelPreview({
               <div style={{
                 position: "absolute",
                 inset: 0,
-                background: "#e8e5de",
+                background: usesClearSubstrate ? "rgba(212,223,230,0.72)" : "#e8e5de",
                 borderRadius: 4,
               }} />
             ) : (
@@ -638,7 +816,8 @@ export function StickerPeelPreview({
                 alt=""
                 style={{
                   ...imgStyle,
-                  filter: `url(#ef-${uid})`,
+                  filter: usesClearSubstrate ? undefined : `url(#ef-${uid})`,
+                  opacity: usesClearSubstrate ? 0.78 : 1,
                 }}
                 draggable={false}
               />
@@ -651,8 +830,9 @@ export function StickerPeelPreview({
                 pointerEvents: "none",
                 borderRadius: isSquareCut ? 4 : undefined,
                 background: [
-                  // Broad warm tint — sticky adhesive base tone
-                  "linear-gradient(180deg, rgba(245,235,210,0.35) 0%, rgba(235,225,200,0.25) 100%)",
+                  usesClearSubstrate
+                    ? "linear-gradient(180deg, rgba(220,232,238,0.28) 0%, rgba(196,210,219,0.14) 100%)"
+                    : "linear-gradient(180deg, rgba(245,235,210,0.35) 0%, rgba(235,225,200,0.25) 100%)",
                   // Primary specular highlight — wet surface reflection
                   "linear-gradient(148deg, transparent 22%, rgba(255,255,255,0.06) 34%, rgba(255,255,255,0.22) 43%, rgba(255,255,255,0.38) 48%, rgba(255,255,255,0.42) 50%, rgba(255,255,255,0.38) 52%, rgba(255,255,255,0.22) 57%, rgba(255,255,255,0.06) 66%, transparent 78%)",
                   // Secondary softer reflection — adds depth
@@ -670,6 +850,7 @@ export function StickerPeelPreview({
                 }),
               }}
             />
+            <div className="sticker-back-rim" style={edgeLightStyle} />
           </div>
         </div>
       </div>

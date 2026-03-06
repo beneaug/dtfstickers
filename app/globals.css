@@ -258,74 +258,207 @@ main {
 
 /* --- Finish overlays --- */
 
-/* Holographic layer 1: rainbow foil via color-dodge
-   Repeating rainbow + conic iridescence composited via background-blend-mode,
-   then color-dodged onto the sticker. The filter stack transforms the
-   gradient from neon into metallic. opacity: 0.5 prevents blowout. */
-.holo-tint {
-  background:
-    repeating-linear-gradient(
-      133deg,
-      #e87cb8 0%, #e8a060 8%, #d4c040 16%,
-      #60d888 24%, #40c8e0 32%, #8868d8 40%, #e87cb8 48%
-    ),
-    conic-gradient(
-      from 220deg at 50% 50%,
-      #e87cb8, #8868d8, #40c8e0, #60d888, #d4c040, #e8a060, #e87cb8
-    );
-  background-size: 300% 300%, 150% 150%;
-  background-blend-mode: overlay;
-  mix-blend-mode: soft-light;
-  filter: contrast(1.3) saturate(1.4);
-  opacity: 0.65;
-  animation: holo-shimmer 6s ease-in-out infinite;
+.sticker-stage {
+  isolation: isolate;
 }
 
-/* Holographic layer 2: sweeping specular highlight + micro-scanlines
-   The sweep animation creates "light catching the foil" movement.
-   Screen blend adds brightness without darkening. */
-.holo-shine {
+.sticker-depth-layer {
+  transform: translate(var(--edge-depth-x), var(--edge-depth-y));
+  opacity: 0.92;
+  filter: blur(0.25px) saturate(0.88);
+}
+
+.sticker-face {
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,0.78))
+    drop-shadow(var(--edge-depth-x) var(--edge-depth-y) 0 rgba(223,219,212,0.92))
+    drop-shadow(calc(var(--edge-depth-x) * 1.4) calc(var(--edge-depth-y) * 1.35) 1px rgba(150,138,122,0.22))
+    drop-shadow(0 12px 20px rgba(15,23,42,0.10));
+}
+
+.sticker-flap {
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,0.55))
+    drop-shadow(calc(var(--edge-depth-x) * 0.45) calc(var(--edge-depth-y) * 0.6) 0 rgba(222,216,208,0.72))
+    drop-shadow(0 14px 20px rgba(15,23,42,0.12));
+}
+
+.sticker-face-light,
+.sticker-edge-rim,
+.sticker-back-rim,
+.finish-gloss-laminate,
+.finish-holo-spectrum,
+.finish-holo-shine,
+.finish-holo-glare,
+.finish-prismatic-spectrum,
+.finish-prismatic-shine,
+.finish-glitter-spectrum,
+.finish-glitter-glare,
+.finish-clear-shell,
+.finish-mirror-surface,
+.finish-brushed-surface,
+.finish-glow-surface,
+.finish-soft-glare {
+  pointer-events: none;
+}
+
+.sticker-face-light {
   background:
-    linear-gradient(
-      115deg,
-      transparent 20%,
-      rgba(255,255,255,0.06) 36%,
-      rgba(255,255,255,0.30) 46%,
-      rgba(255,255,255,0.55) 50%,
-      rgba(255,255,255,0.30) 54%,
-      rgba(255,255,255,0.06) 64%,
-      transparent 80%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255,255,255,0.04) 0px,
-      transparent 1px,
-      transparent 2px
-    ),
-    radial-gradient(
-      ellipse at 40% 30%,
-      rgba(255,255,255,0.25) 0%,
-      transparent 60%
-    );
-  background-size: 200% 200%, 100% 100%, 100% 100%;
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 15%, transparent 44%),
+    linear-gradient(calc(180deg + var(--foil-tilt)), rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 10%, transparent 30%, rgba(255,255,255,0.06) 58%, rgba(0,0,0,0.12) 100%);
   mix-blend-mode: screen;
-  animation: holo-sweep 6s ease-in-out infinite;
+  opacity: 0.88;
 }
 
-@keyframes holo-shimmer {
-  0%, 100% { background-position: 20% 20%, 40% 40%; }
-  33%      { background-position: 70% 30%, 55% 60%; }
-  66%      { background-position: 40% 70%, 30% 45%; }
+.sticker-edge-rim {
+  background:
+    linear-gradient(calc(180deg + var(--foil-tilt)), rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.18) 8%, transparent 24%, transparent 70%, rgba(61,48,34,0.14) 100%),
+    radial-gradient(circle at var(--foil-opposite-x) var(--foil-opposite-y), rgba(255,255,255,0.22) 0%, transparent 42%);
+  mix-blend-mode: soft-light;
+  opacity: var(--edge-rim-opacity);
 }
 
-@keyframes holo-sweep {
-  0%, 100% { background-position: 30% 50%, 0 0, center; }
-  50%      { background-position: 70% 50%, 0 0, center; }
+.sticker-back-rim {
+  background: linear-gradient(calc(210deg + var(--foil-tilt)), rgba(255,255,255,0.14) 0%, transparent 22%, rgba(128,105,76,0.12) 100%);
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .holo-tint,
-  .holo-shine { animation: none; }
+.finish-gloss-laminate {
+  mix-blend-mode: screen;
+}
+
+.finish-holo-spectrum {
+  background-image:
+    repeating-linear-gradient(
+      130deg,
+      rgba(255,102,168,0.92) 0%,
+      rgba(255,102,168,0.92) 8%,
+      rgba(255,191,89,0.92) 8%,
+      rgba(255,191,89,0.92) 16%,
+      rgba(208,214,78,0.88) 16%,
+      rgba(208,214,78,0.88) 24%,
+      rgba(82,226,162,0.88) 24%,
+      rgba(82,226,162,0.88) 32%,
+      rgba(77,200,255,0.88) 32%,
+      rgba(77,200,255,0.88) 40%,
+      rgba(136,112,255,0.90) 40%,
+      rgba(136,112,255,0.90) 48%,
+      rgba(255,102,168,0.92) 48%,
+      rgba(255,102,168,0.92) 56%
+    ),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.10) 0px, transparent 1px, transparent 3px),
+    linear-gradient(115deg, rgba(7,14,34,0.88) 12%, rgba(255,255,255,0.08) 36%, rgba(255,255,255,0.24) 50%, rgba(8,18,42,0.70) 84%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.22) 0%, transparent 46%);
+  background-size: 220% 220%, 100% 100%, 180% 180%, 100% 100%;
+  background-position: var(--foil-bg-x) var(--foil-bg-y), 0 0, var(--foil-opposite-x) var(--foil-opposite-y), center;
+  background-blend-mode: screen, overlay, color-dodge, normal;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.95) saturate(1.45) contrast(1.18);
+  opacity: 0.78;
+}
+
+.finish-holo-shine {
+  background-image:
+    linear-gradient(calc(118deg + var(--foil-tilt)), transparent 16%, rgba(255,255,255,0.06) 32%, rgba(255,255,255,0.30) 46%, rgba(255,255,255,0.72) 50%, rgba(255,255,255,0.30) 54%, rgba(255,255,255,0.08) 68%, transparent 86%),
+    radial-gradient(circle at var(--foil-opposite-x) var(--foil-opposite-y), rgba(255,255,255,0.18) 0%, transparent 42%);
+  background-size: 200% 200%, 100% 100%;
+  background-position: var(--foil-opposite-x) var(--foil-bg-y), center;
+  mix-blend-mode: screen;
+  opacity: 0.72;
+}
+
+.finish-holo-glare {
+  background: radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.26) 18%, rgba(155,234,255,0.10) 36%, transparent 58%);
+  mix-blend-mode: soft-light;
+  opacity: var(--foil-glare-opacity);
+}
+
+.finish-prismatic-spectrum {
+  background-image:
+    linear-gradient(45deg, rgba(255,87,165,0.78) 0%, transparent 34%, rgba(255,222,96,0.72) 50%, transparent 68%, rgba(86,203,255,0.72) 100%),
+    linear-gradient(-45deg, rgba(114,100,255,0.74) 0%, transparent 38%, rgba(94,235,180,0.70) 52%, transparent 68%, rgba(255,112,171,0.72) 100%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0px, transparent 1px, transparent 7px),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.24) 0%, transparent 46%);
+  background-size: 220% 220%, 220% 220%, 100% 100%, 100% 100%;
+  background-position: var(--foil-bg-x) var(--foil-opposite-y), var(--foil-opposite-x) var(--foil-bg-y), 0 0, center;
+  background-blend-mode: screen, screen, overlay, normal;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.96) saturate(1.6) contrast(1.25);
+  opacity: 0.84;
+}
+
+.finish-prismatic-shine {
+  background-image:
+    conic-gradient(from var(--foil-tilt) at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.00) 0deg, rgba(255,255,255,0.16) 44deg, rgba(255,255,255,0.52) 92deg, rgba(255,255,255,0.08) 144deg, rgba(255,255,255,0.00) 220deg, rgba(255,255,255,0.18) 300deg, rgba(255,255,255,0.00) 360deg);
+  mix-blend-mode: screen;
+  opacity: 0.5;
+}
+
+.finish-glitter-spectrum {
+  background-image:
+    radial-gradient(circle at 18% 24%, rgba(255,255,255,0.95) 0px, rgba(255,255,255,0.95) 0.8px, transparent 1px),
+    radial-gradient(circle at 34% 78%, rgba(255,229,176,0.88) 0px, rgba(255,229,176,0.88) 1px, transparent 1.4px),
+    radial-gradient(circle at 72% 36%, rgba(255,255,255,0.86) 0px, rgba(255,255,255,0.86) 0.9px, transparent 1.3px),
+    radial-gradient(circle at 84% 68%, rgba(197,236,255,0.82) 0px, rgba(197,236,255,0.82) 1px, transparent 1.4px),
+    linear-gradient(calc(150deg + var(--foil-tilt)), rgba(255,255,255,0.14) 0%, transparent 24%, rgba(255,217,163,0.08) 56%, rgba(255,255,255,0.16) 100%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.24) 0%, transparent 42%);
+  background-size: 48px 48px, 54px 54px, 58px 58px, 62px 62px, 100% 100%, 100% 100%;
+  background-position: 0 0, 14px 20px, 22px 10px, 9px 28px, center, center;
+  background-blend-mode: screen;
+  mix-blend-mode: screen;
+  filter: saturate(1.22) contrast(1.14);
+  opacity: 0.76;
+}
+
+.finish-glitter-glare {
+  background: radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.14) 18%, transparent 42%);
+  mix-blend-mode: soft-light;
+  opacity: 0.64;
+}
+
+.finish-clear-shell {
+  background-image:
+    linear-gradient(calc(158deg + var(--foil-tilt)), rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.14) 18%, transparent 46%, rgba(170,192,208,0.12) 76%, rgba(255,255,255,0.26) 100%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.24) 0%, transparent 36%);
+  mix-blend-mode: screen;
+  opacity: 0.58;
+}
+
+.finish-mirror-surface {
+  background-image:
+    linear-gradient(calc(165deg + var(--foil-tilt)), rgba(247,250,252,0.96) 0%, rgba(192,201,210,0.74) 18%, rgba(96,110,124,0.58) 32%, rgba(245,248,250,0.92) 48%, rgba(163,176,188,0.74) 62%, rgba(67,77,90,0.52) 78%, rgba(246,248,250,0.88) 100%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.34) 0%, transparent 35%);
+  background-size: 160% 160%, 100% 100%;
+  background-position: var(--foil-bg-x) var(--foil-bg-y), center;
+  mix-blend-mode: screen;
+  filter: saturate(0.55) contrast(1.24) brightness(0.96);
+  opacity: 0.74;
+}
+
+.finish-brushed-surface {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 1px, rgba(182,190,198,0.10) 1px, rgba(182,190,198,0.10) 3px, rgba(123,136,149,0.08) 3px, rgba(123,136,149,0.08) 5px),
+    linear-gradient(calc(160deg + var(--foil-tilt)), rgba(227,232,236,0.82) 0%, rgba(129,141,153,0.38) 24%, rgba(233,237,240,0.88) 52%, rgba(120,132,146,0.32) 76%, rgba(242,245,247,0.82) 100%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.20) 0%, transparent 40%);
+  mix-blend-mode: soft-light;
+  filter: saturate(0.7) contrast(1.18) brightness(0.96);
+  opacity: 0.75;
+}
+
+.finish-glow-surface {
+  background-image:
+    linear-gradient(180deg, rgba(229,240,190,0.44) 0%, rgba(212,228,155,0.24) 100%),
+    radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(247,255,221,0.32) 0%, transparent 42%);
+  mix-blend-mode: screen;
+  filter: saturate(1.05) contrast(1.08);
+  opacity: 0.58;
+}
+
+.finish-soft-glare {
+  background: radial-gradient(circle at var(--foil-pointer-x) var(--foil-pointer-y), rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.12) 24%, transparent 46%);
+  mix-blend-mode: screen;
+  opacity: 0.55;
 }
 
 /* --- Drop zone --- */
