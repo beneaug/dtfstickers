@@ -419,11 +419,12 @@ export function StickerPeelPreview({
   //    hapticTick() / hapticBuzz() call label.click() DIRECTLY, with zero
   //    intermediate layers, in the same synchronous call frame.
   //
-  // 2. On iOS, the peel gesture starts from a native touchstart on the
-  //    sticker itself. That gives us the best shot at a real tactile buzz
-  //    right as the user begins peeling, instead of requiring a separate tap.
+  // 2. On iOS Safari, reliable hardware haptics come from click-driven
+  //    activation, not from drag-time pointer/touch move handlers. The peel
+  //    gesture itself is therefore carried by audio + visuals once dragging.
   //
-  // 3. Click remains as a fallback path for mouse/desktop and quick taps.
+  // 3. Click remains the reliable hardware-haptic path for iOS, mouse, and
+  //    explicit peel controls such as the peel tab in the sticker corner.
   //
   // 4. PeelAudio provides audio feedback during drag (Web Audio API).
 
@@ -477,20 +478,6 @@ export function StickerPeelPreview({
       }
     }, ACTIVATION_WINDOW);
   }, [addDebugLog, applyPeelToDOM, runSpringAnimation]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      if (activePointerRef.current !== null) return;
-      activatePeelBuzz("touchstart");
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    return () => el.removeEventListener("touchstart", onTouchStart);
-  }, [activatePeelBuzz]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -799,6 +786,33 @@ export function StickerPeelPreview({
             WebkitTapHighlightColor: "transparent",
           }}
         >
+          <button
+            type="button"
+            aria-label="Lift sticker edge"
+            onClick={(event) => {
+              event.stopPropagation();
+              activatePeelBuzz("peel-tab");
+            }}
+            className="absolute right-2 top-2 z-10"
+            style={{
+              appearance: "none",
+              border: "1px solid rgba(15, 23, 42, 0.12)",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(244,240,231,0.96) 100%)",
+              borderRadius: 999,
+              boxShadow: "0 8px 18px rgba(15, 23, 42, 0.12)",
+              color: "#41505d",
+              cursor: "pointer",
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              lineHeight: 1,
+              padding: "8px 10px",
+              textTransform: "uppercase",
+            }}
+          >
+            Peel
+          </button>
+
           {/* SVG Filters — stroke + paper fill (rasterized once per layer) */}
           <svg
             width="0"
@@ -1016,7 +1030,7 @@ export function StickerPeelPreview({
           ref={hintRef}
           className="peel-hint text-[11px] tracking-[0.04em] text-muted"
         >
-          Touch and peel
+          Tap Peel, then drag
         </p>
         <button
           type="button"
