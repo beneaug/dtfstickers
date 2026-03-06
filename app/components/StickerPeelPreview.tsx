@@ -419,14 +419,11 @@ export function StickerPeelPreview({
   //    hapticTick() / hapticBuzz() call label.click() DIRECTLY, with zero
   //    intermediate layers, in the same synchronous call frame.
   //
-  // 2. Haptics fire from onClick (click event), which is the ONLY event
-  //    type confirmed to work for the checkbox-switch haptic on iOS Safari.
-  //    The click event fires within the UserGestureIndicator scope of the
-  //    preceding pointerup.
+  // 2. On iOS, the peel gesture starts from a native touchstart on the
+  //    sticker itself. That gives us the best shot at a real tactile buzz
+  //    right as the user begins peeling, instead of requiring a separate tap.
   //
-  // 3. To ensure click fires for taps, setPointerCapture is DEFERRED to
-  //    the first significant pointermove (>8px). Pointer capture suppresses
-  //    click synthesis, so taps (no significant movement) get a real click.
+  // 3. Click remains as a fallback path for mouse/desktop and quick taps.
   //
   // 4. PeelAudio provides audio feedback during drag (Web Audio API).
 
@@ -452,6 +449,48 @@ export function StickerPeelPreview({
     };
     buzzRafRef.current = requestAnimationFrame(buzzLoop);
   }, []);
+
+  const activatePeelBuzz = useCallback((source: string) => {
+    if (snappedRef.current) return;
+
+    addDebugLog(`${source}: buzz start`);
+    buzzCancelRef.current?.();
+    buzzCancelRef.current = hapticBuzz(HAPTIC_BUZZ_DURATION_MS);
+    activationStartedAtRef.current = performance.now();
+    activatedRef.current = true;
+
+    if (peelRef.current < 0.15) {
+      peelRef.current = 0.15;
+      applyPeelToDOM();
+    }
+
+    if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+    activationTimerRef.current = setTimeout(() => {
+      activatedRef.current = false;
+      activationTimerRef.current = null;
+      addDebugLog("activation expired");
+      if (activePointerRef.current === null && !snappedRef.current) {
+        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
+          angleRef.current = DEFAULT_DRAG_ANGLE;
+          applyPeelToDOM();
+        });
+      }
+    }, ACTIVATION_WINDOW);
+  }, [addDebugLog, applyPeelToDOM, runSpringAnimation]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      if (activePointerRef.current !== null) return;
+      activatePeelBuzz("touchstart");
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    return () => el.removeEventListener("touchstart", onTouchStart);
+  }, [activatePeelBuzz]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -493,12 +532,6 @@ export function StickerPeelPreview({
       // If activated (from a prior tap), start audio buzz for drag feedback
       if (activatedRef.current) {
         addDebugLog("activated drag start");
-        const now = performance.now();
-        if (now - activationStartedAtRef.current < HAPTIC_BUZZ_DURATION_MS) {
-          buzzCancelRef.current?.();
-          buzzCancelRef.current = hapticBuzz(HAPTIC_BUZZ_DURATION_MS);
-          addDebugLog("restart buzz from activation");
-        }
         startBuzzAudio();
       }
 
@@ -533,11 +566,6 @@ export function StickerPeelPreview({
         pointerCapturedRef.current = true;
         dragStartedRef.current = true;
         addDebugLog(`drag start d=${dist.toFixed(1)}`);
-        // Best-effort: some browsers still honor activation here.
-        // If accepted, this starts tactile buzz right as the peel begins.
-        buzzCancelRef.current?.();
-        buzzCancelRef.current = hapticBuzz(HAPTIC_BUZZ_DURATION_MS);
-        addDebugLog("best-effort buzz on drag start");
       }
 
       // Let tap gestures pass through untouched so iOS still synthesizes click.
@@ -672,9 +700,8 @@ export function StickerPeelPreview({
 
   // --- Click handler for tap haptic ---
   // onClick is the ONLY event confirmed to propagate user activation for
-  // the checkbox-switch haptic on iOS Safari. By deferring setPointerCapture
-  // to first significant pointermove, click fires normally for taps.
-  // This uses the exact same mechanism as the working test button.
+  // the checkbox-switch haptic on iOS Safari in a fallback path, and it is
+  // also the natural desktop trigger for the sticker.
   const handleClick = useCallback(() => {
     if (!clickArmedRef.current) {
       addDebugLog("click ignored (not armed)");
@@ -683,29 +710,8 @@ export function StickerPeelPreview({
     clickArmedRef.current = false;
     if (snappedRef.current || activatedRef.current) return;
 
-    // Fire haptic — same path as test button: click event → label.click()
-    addDebugLog("click armed: buzz start");
-    buzzCancelRef.current?.();
-    buzzCancelRef.current = hapticBuzz(HAPTIC_BUZZ_DURATION_MS);
-    activationStartedAtRef.current = performance.now();
-
-    // Activate the sticker
-    activatedRef.current = true;
-    peelRef.current = 0.15;
-    applyPeelToDOM();
-    if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
-    activationTimerRef.current = setTimeout(() => {
-      activatedRef.current = false;
-      activationTimerRef.current = null;
-      addDebugLog("activation expired");
-      if (activePointerRef.current === null && !snappedRef.current) {
-        runSpringAnimation(REST_PEEL, SPRING_SNAP_BACK, () => {
-          angleRef.current = DEFAULT_DRAG_ANGLE;
-          applyPeelToDOM();
-        });
-      }
-    }, ACTIVATION_WINDOW);
-  }, [addDebugLog, applyPeelToDOM, runSpringAnimation]);
+    activatePeelBuzz("click");
+  }, [addDebugLog, activatePeelBuzz]);
 
   useEffect(() => {
     return () => {
@@ -1010,7 +1016,7 @@ export function StickerPeelPreview({
           ref={hintRef}
           className="peel-hint text-[11px] tracking-[0.04em] text-muted"
         >
-          Tap, then peel
+          Touch and peel
         </p>
         <button
           type="button"
